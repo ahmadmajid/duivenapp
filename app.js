@@ -49,42 +49,71 @@ function demo() {
     D('d12', 'NL-2021-2214552', 'V', 'Donkerkras', 'kweek', null, { naam: 'Stamduivin', vader: 'd17', moeder: 'd18' }),
     D('d14', 'NL-2022-3320450', 'V', 'Blauw', 'kweek', null),
     D('d1', 'NL-2023-4011234', 'D', 'Donkerkras', 'vlieg', 0.10, { naam: 'Kanon', vader: 'd11', moeder: 'd12' }),
-    D('d2', 'NL-2023-4011238', 'V', 'Blauwgebandeerd', 'vlieg', 0.17, { naam: 'Dirkje', vader: 'd11', moeder: 'd12' }),
-    D('d3', 'NL-2024-1191234', 'D', 'Kras', 'vlieg', 0.30, { aankoopprijs: 250, gekochtVan: 'Clubgenoot', aankoopdatum: plus(-250) }),
-    D('d4', 'NL-2024-1190457', 'V', 'Blauw', 'vlieg', 0.22, { vader: 'd11', moeder: 'd14' }),
-    D('d5', 'NL-2024-1190460', 'D', 'Rood', 'vlieg', 0.52),
+    D('d2', 'NL-2023-4011238', 'V', 'Blauwgebandeerd', 'vlieg', 0.17, { pref: { warm: 0.3 }, naam: 'Dirkje', vader: 'd11', moeder: 'd12' }),
+    D('d3', 'NL-2024-1191234', 'D', 'Kras', 'vlieg', 0.30, { pref: { kop: -0.22 }, aankoopprijs: 250, gekochtVan: 'Clubgenoot', aankoopdatum: plus(-250) }),
+    D('d4', 'NL-2024-1190457', 'V', 'Blauw', 'vlieg', 0.22, { pref: { rug: -0.12 }, vader: 'd11', moeder: 'd14' }),
+    D('d5', 'NL-2024-1190460', 'D', 'Rood', 'vlieg', 0.52, { pref: { kop: -0.42 } }),
     D('d6', 'NL-2023-4011301', 'D', 'Schimmel', 'vlieg', 0.86),
-    D('d7', 'NL-2024-1190502', 'V', 'Kras', 'vlieg', 0.40),
+    D('d7', 'NL-2024-1190502', 'V', 'Kras', 'vlieg', 0.40, { pref: { warm: -0.3 } }),
     D('d8', 'NL-2022-3324417', 'D', 'Vaal', 'vlieg', 0.97),
-    D('d9', 'NL-2024-1190519', 'V', 'Blauwgebandeerd', 'vlieg', 0.34),
-    D('d10', 'NL-2023-4011277', 'D', 'Blauw', 'vlieg', 0.66),
+    D('d9', 'NL-2024-1190519', 'V', 'Blauwgebandeerd', 'vlieg', 0.34, { pref: { regen: -0.35 } }),
+    D('d10', 'NL-2023-4011277', 'D', 'Blauw', 'vlieg', 0.66, { pref: { kop: 0.25 } }),
     D('d19', 'NL-2026-1234573', 'D', 'Donkerkras', 'vlieg', null, { vader: 'd11', moeder: 'd12', notitie: 'Geringd in nestbak 1' }),
     D('d20', 'NL-2026-1234574', 'V', 'Blauwgebandeerd', 'vlieg', null, { vader: 'd11', moeder: 'd12', notitie: 'Geringd in nestbak 1' }),
     D('d21', 'NL-2025-1190611', 'D', 'Donkerkras', 'verkocht', null, { vader: 'd1', moeder: 'd4', verkoopprijs: 275, verkochtAan: 'Liefhebber uit Duitsland', verkoopdatum: plus(-120) }),
     D('d13', 'NL-2024-1190533', 'D', 'Donkerkras', 'verkoop', 0.26, { prijs: 350, vader: 'd11', moeder: 'd14' }),
   ];
   const vliegers = duiven.filter(d => d.q != null);
-  const vluchten = [
-    ['Pommeroeul', 178, -190, '09:15', 1240], ['Quiévrain', 196, -183, '10:00', 980],
-    ['Noyon', 318, -176, '08:30', 1510], ['Pont-Ste-Maxence', 354, -169, '07:45', 1320],
-    ['Melun', 441, -162, '07:00', 860], ['Châteauroux', 650, -148, '06:30', 640],
-  ].map(([plaats, afstand, dag, lostijd, deelnemers]) => {
+  const thuisDemo = { lat: 52.09, lon: 5.12 };
+  const plaatsen = [
+    ['Pommeroeul', 178, 50.46, 3.70], ['Quiévrain', 196, 50.40, 3.68], ['Arras', 252, 50.29, 2.78], ['Péronne', 285, 49.93, 2.93],
+    ['Noyon', 318, 49.58, 3.00], ['Pont-Ste-Maxence', 354, 49.30, 2.60], ['Melun', 441, 48.54, 2.66], ['Sens', 470, 48.20, 3.28],
+    ['Bourges', 590, 47.08, 2.40], ['Châteauroux', 650, 46.81, 1.69],
+  ];
+  const weerDemo = [['rug', 18, 17, 0], ['kop', 24, 14, 0], ['zij', 12, 21, 0], ['kop', 30, 12, 1.5], ['rug', 15, 26, 0],
+    ['zij', 20, 23, 0], ['kop', 22, 15, 0], ['rug', 10, 28, 0], ['zij', 16, 19, 2.0], ['kop', 26, 18, 0]];
+  const lostijden = ['09:15', '10:00', '08:45', '08:30', '08:30', '07:45', '07:00', '07:15', '06:45', '06:30'];
+  const deeln = [1240, 980, 1105, 1320, 1510, 1320, 860, 790, 700, 640];
+  const vluchten = plaatsen.map(([plaats, afstand, lat, lon], i) => {
+    const [rel, kmh, temp, regen] = weerDemo[i];
+    const ks = koers({ lat, lon }, thuisDemo);
+    const weer = { kmh, van: (ks + { kop: 0, rug: 180, zij: 90 }[rel]) % 360, temp, regen, rel, bron: 'voorbeeld', tijd: Date.now() };
+    const lostijd = lostijden[i], deelnemers = deeln[i];
     const uitslag = vliegers.map(d => {
-      const f = Math.max(0.01, d.q + (r() - 0.5) * 0.45 + (afstand > 500 ? 0.08 : 0));
+      const pr = d.pref || {};
+      const f = Math.max(0.01, d.q + (r() - 0.5) * 0.35 + (afstand > 500 ? 0.06 : 0) + (pr[rel] || 0) + (temp >= 25 ? pr.warm || 0 : 0) + (regen > 0.5 ? pr.regen || 0 : 0));
       if (f > 1.08) return { duif: d.id, aankomst: null, plaats: null };
       const sn = 1450 * (1 - 0.2 * Math.min(f, 1)) * (afstand > 500 ? 0.85 : 1);
       const m = minuten(lostijd) + afstand * 1000 / sn;
       const h = Math.floor(m / 60), mm = Math.floor(m % 60), ss = Math.floor((m * 60) % 60);
       return { duif: d.id, aankomst: `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`, plaats: Math.min(deelnemers, Math.max(1, Math.round(f * deelnemers))) };
     });
-    return { id: uid(), plaats, afstand, datum: plus(dag), lostijd, deelnemers, uitslag };
+    return { id: uid(), plaats, afstand, datum: plus(-197 + i * 7), lostijd, deelnemers, uitslag, lat, lon, weer };
   });
-  duiven.forEach(d => delete d.q);
+  // dagboek: wat er in de week voor elke vlucht gedaan is (voor de beste vluchten iets anders)
+  const logboek = [];
+  const L = (datum, tijd, cat, tekst) => logboek.push({ id: uid(), datum, tijd, taak: 'dagboek', cat, tekst });
+  const teamScore = v => { const l = v.uitslag.map(u => u.plaats ? u.plaats / v.deelnemers : 1); return l.reduce((a, b) => a + b, 0) / l.length; };
+  const top = new Set([...vluchten].sort((a, b) => teamScore(a) - teamScore(b)).slice(0, 3).map(v => v.id));
+  vluchten.forEach((v, i) => {
+    const goed = top.has(v.id);
+    for (let d = 6; d >= 1; d--) {
+      const dag = plus(-d, v.datum);
+      L(dag, '07:30', 'voer', d >= 4 ? 'Zuiveringsmengeling' : goed ? "Sportmengeling + pinda's" : (i % 2 ? 'Kweekmengeling' : 'Sportmengeling'));
+      if (d === 5 || d === 3) L(dag, '18:00', 'training', goed ? 'Opgevlogen 60 minuten' : 'Opgevlogen 30 minuten');
+      if (d === 1 && goed) L(dag, '08:00', 'bij', 'Elektrolyten in het water');
+      if (d === 2 && (goed || i % 3 === 0)) L(dag, '08:00', 'bij', 'Biergist over het voer');
+      if (d === 4 && !goed && i % 2 === 0) L(dag, '09:00', 'bij', 'Knoflook in het water');
+    }
+    L(plus(-1, v.datum), '19:00', 'overig', 'Ingekorfd');
+  });
+  vluchten.push({ id: uid(), plaats: 'Quiévrain', afstand: 196, datum: plus(4), lostijd: '09:00', deelnemers: 0, uitslag: [], lat: 50.40, lon: 3.68 });
+  duiven.forEach(d => { delete d.q; delete d.pref; });
 
   const kosten = [];
   const k = (dag, omschrijving, bedrag, cat) => kosten.push({ id: uid(), datum: plus(dag), omschrijving, bedrag, cat });
   for (let m = 0; m < 10; m++) k(-300 + m * 30, 'Voer (3 zakken)', -55.5, 'Voer');
-  vluchten.forEach((v, i) => { k(dagenTot(v.datum) - 2, 'Inleg ' + v.plaats, -38 - i * 4, 'Inleg'); k(dagenTot(v.datum) + 3, 'Prijzengeld ' + v.plaats, 20 + i * 17, 'Prijzen'); });
+  vluchten.filter(v => v.uitslag.length).forEach((v, i) => { k(dagenTot(v.datum) - 2, 'Inleg ' + v.plaats, -38 - i * 4, 'Inleg'); k(dagenTot(v.datum) + 3, 'Prijzengeld ' + v.plaats, 20 + i * 17, 'Prijzen'); });
   k(-210, 'Dierenarts voorjaarscontrole', -65, 'Medicatie');
   k(-200, 'Paramyxo-vaccin', -32, 'Medicatie');
   k(-120, 'Verkoop NL-2025-1190611', 275, 'Verkoop');
@@ -95,7 +124,7 @@ function demo() {
   return {
     versie: 4,
     demo: true,
-    duiven, vluchten, kosten,
+    duiven, vluchten, kosten, logboek,
     nestbakken: [
       { nr: 1, vader: 'd11', moeder: 'd12', legdatum: plus(-16), eieren: 2, uitgekomen: '', jongen: 0, geringd: false },
       { nr: 2, vader: 'd3', moeder: 'd14', legdatum: plus(-24), eieren: 2, uitgekomen: plus(-6), jongen: 2, geringd: false },
@@ -174,6 +203,7 @@ function analyse(v) {
     x.prijs = !!(x.plaats && v.deelnemers && x.plaats <= v.deelnemers / 3);
     x.nietThuis = !x.aankomst && verleden;
     x.onderweg = !x.aankomst && !verleden;
+    x.gepland = v.datum > VANDAAG();
     x.telaat = !!(x.sn && max && x.sn < 0.9 * max);
     x.pct = x.plaats && v.deelnemers ? x.plaats / v.deelnemers * 100 : (x.nietThuis ? 100 : null);
   });
@@ -223,6 +253,12 @@ function meldingen() {
   const m = [];
   const add = (kl, ico, titel, sub, href) => m.push({ kl, ico, titel, sub, href });
 
+  // komende vluchten met weer en inkorfadvies
+  S.vluchten.filter(v => dagenTot(v.datum) >= 0 && dagenTot(v.datum) <= 4).forEach(v => {
+    const a = v.weer ? inkorfAdvies(v) : null, nv = a ? a.lijst.filter(x => x.naarVoren && !x.geblokt).length : 0;
+    const kp = kpVoor(v.datum);
+    add(kp >= 5 ? 'oranje' : 'blauw', '🏁', `Vlucht ${v.plaats} ${wanneer(dagenTot(v.datum))}`, v.weer ? `${weerTekst(v.weer)}${kp != null ? ' · ' + kpTekst(kp) : ''}${nv ? ` – ${nv} duiven naar voren bij dit weer` : ''}` : 'Weer wordt opgehaald.', '#/vlucht/' + v.id);
+  });
   // vorst
   const w = S.weer;
   if (S.inst.vorstTest) add('rood', '❄', 'Vannacht −3 °C (test)', 'Drinkbakken binnenhalen, water niet laten bevriezen, hok tochtvrij.', '#/instellingen');
@@ -246,8 +282,11 @@ function meldingen() {
     add('blauw', '💊', `Kuur ${k.naam}: dag ${dag} van ${k.dagen}`, `${k.hok}. Niet inkorven vóór ${fmtD(plus(k.dagen + (k.wachttijd || 0), k.start))}.`, '#/gezondheid');
   });
   // training
-  S.trainingen.filter(t => !t.gedaan && dagenTot(t.datum) >= 0 && dagenTot(t.datum) <= 1).forEach(t =>
-    add('blauw', '🧭', `Training ${t.afstand} km ${wanneer(dagenTot(t.datum))}`, t.plaats, '#/training'));
+  S.trainingen.filter(t => !t.gedaan && dagenTot(t.datum) >= 0 && dagenTot(t.datum) <= 1).forEach(t => {
+    const ad = africhtAdvies(dagenTot(t.datum));
+    if (ad?.oordeel === 'slecht') add('rood', '🏠', `Training ${t.afstand} km ${wanneer(dagenTot(t.datum))}: niet doen`, `Houd de duiven thuis – ${ad.uitleg}`, '#/training');
+    else add(ad?.oordeel === 'twijfel' ? 'oranje' : 'blauw', '🧭', `Training ${t.afstand} km ${wanneer(dagenTot(t.datum))}${ad?.oordeel === 'goed' ? ' – goed weer' : ''}`, t.plaats + (ad ? ` · ${ad.uitleg}` : ''), '#/training');
+  });
   // kweek
   S.nestbakken.forEach(nb => {
     if (nb.eieren && !nb.uitgekomen) {
@@ -276,14 +315,58 @@ async function haalWeer(force) {
   const w = S.weer;
   if (!force && w && Date.now() - w.tijd < 3 * 3600e3 && w.lat === S.inst.lat && w.lon === S.inst.lon) return;
   try {
-    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${S.inst.lat}&longitude=${S.inst.lon}&daily=temperature_2m_min,temperature_2m_max&timezone=auto&forecast_days=3`);
+    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${S.inst.lat}&longitude=${S.inst.lon}&daily=temperature_2m_min,temperature_2m_max&hourly=temperature_2m,precipitation,wind_speed_10m,wind_gusts_10m,wind_direction_10m,weather_code,visibility&timezone=auto&forecast_days=3`);
     const j = await r.json();
-    S.weer = { tijd: Date.now(), lat: S.inst.lat, lon: S.inst.lon, dagen: j.daily.time, min: j.daily.temperature_2m_min, max: j.daily.temperature_2m_max };
+    S.weer = { tijd: Date.now(), lat: S.inst.lat, lon: S.inst.lon, dagen: j.daily.time, min: j.daily.temperature_2m_min, max: j.daily.temperature_2m_max, uur: j.hourly };
     bewaar();
     vorstPush();
     if (route().naam === 'vandaag' || route().naam === 'instellingen') render();
   } catch { /* offline: dan later */ }
 }
+// Kp-index (zonneactiviteit, verstoort de oriëntatie) – gratis verwachting van NOAA, 3 dagen vooruit
+async function haalKp(force) {
+  if (!force && S.kp && Date.now() - S.kp.tijd < 3 * 3600e3) return;
+  try {
+    const j = await (await fetch('https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json')).json();
+    const perDag = {};
+    for (const x of j) {
+      const d = new Date(x.time_tag + 'Z'); const dag = iso(d), uur = d.getHours();
+      if (uur < 6 || uur > 20) continue; // alleen overdag telt voor de duiven
+      perDag[dag] = Math.max(perDag[dag] ?? 0, +x.kp);
+    }
+    S.kp = { tijd: Date.now(), perDag }; bewaar();
+    if (['vandaag', 'training', 'vlucht'].includes(route().naam)) render();
+  } catch { /* later opnieuw */ }
+}
+const kpVoor = datum => S.kp?.perDag?.[datum];
+const kpTekst = kp => kp == null ? '' : `Kp ${kp.toFixed(0)}${kp >= 5 ? ' (magnetische storm)' : kp >= 4 ? ' (verhoogd)' : ''}`;
+const WMO_ONWEER = c => c >= 95, WMO_MIST = c => c === 45 || c === 48;
+
+// Africht- en loslaatadvies voor een dag (0 = vandaag) op basis van weer bij het hok en de Kp-index
+function africhtAdvies(dagIdx = 0) {
+  const w = S.weer;
+  if (!w?.uur) return null;
+  const datum = w.dagen[dagIdx];
+  if (!datum) return null;
+  const uren = w.uur.time.map((t, i) => ({ t, i })).filter(o => o.t.startsWith(datum) && +o.t.slice(11, 13) >= 9 && +o.t.slice(11, 13) <= 17).map(o => o.i);
+  const H = w.uur, som = k => uren.reduce((a, i) => a + (H[k][i] ?? 0), 0), max = k => Math.max(...uren.map(i => H[k][i] ?? 0)), min = k => Math.min(...uren.map(i => H[k][i] ?? 99999));
+  const regen = som('precipitation'), wind = max('wind_speed_10m'), stoot = max('wind_gusts_10m'), temp = max('temperature_2m'), tmin = min('temperature_2m');
+  const onweer = uren.some(i => WMO_ONWEER(H.weather_code[i])), mist = uren.some(i => WMO_MIST(H.weather_code[i])) || min('visibility') < 1500;
+  const kp = kpVoor(datum);
+  const slecht = [], twijfel = [], goed = [];
+  if (onweer) slecht.push('onweer');
+  if (regen >= 3) slecht.push(`regen ${regen.toFixed(0)} mm`); else if (regen >= 0.5) twijfel.push(`buien (${regen.toFixed(1)} mm)`); else goed.push('droog');
+  if (stoot >= 50 || wind >= 35) slecht.push(`harde wind (stoten ${Math.round(stoot)} km/u)`); else if (wind >= 22 || stoot >= 40) twijfel.push(`stevige wind ${Math.round(wind)} km/u`); else goed.push(`weinig wind (${Math.round(wind)} km/u)`);
+  if (mist) slecht.push('mist / slecht zicht');
+  if (temp >= 30) twijfel.push(`warm (${Math.round(temp)} °C)`);
+  if (tmin <= 1) twijfel.push(`koud (${Math.round(tmin)} °C)`);
+  if (kp != null) { if (kp >= 5) slecht.push(kpTekst(kp)); else if (kp >= 4) twijfel.push(kpTekst(kp) + ' – vooral jonge duiven'); else goed.push(`Kp ${kp.toFixed(0)}`); }
+  const oordeel = slecht.length ? 'slecht' : twijfel.length ? 'twijfel' : 'goed';
+  return { datum, oordeel, slecht, twijfel, goed, regen, wind, stoot, temp, kp,
+    titel: oordeel === 'slecht' ? 'Houd de duiven thuis' : oordeel === 'twijfel' ? 'Africhten met beleid' : 'Goed africhtweer',
+    uitleg: [...slecht, ...twijfel, ...(oordeel === 'goed' ? goed : [])].join(' · ') };
+}
+
 async function vorstPush() {
   const vorst = S.inst.vorstTest || (S.weer && S.weer.min.slice(0, 2).some(t => t <= 0));
   if (!vorst || S.laatsteVorstPush === VANDAAG()) return;
@@ -295,7 +378,218 @@ async function vorstPush() {
   else new Notification('DuivenApp – vorst', { body: tekst });
 }
 
-// ---------- UI-basis ----------
+// ---------- weer per vlucht ----------
+function rad(x) { return x * Math.PI / 180; }
+function afstandKm(a, b) { const R = 6371, dLat = rad(b.lat - a.lat), dLon = rad(b.lon - a.lon); const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); }
+function koers(a, b) { const y = Math.sin(rad(b.lon - a.lon)) * Math.cos(rad(b.lat)), x = Math.cos(rad(a.lat)) * Math.sin(rad(b.lat)) - Math.sin(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.cos(rad(b.lon - a.lon)); return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360; }
+const richtingNaam = deg => ['N', 'NO', 'O', 'ZO', 'Z', 'ZW', 'W', 'NW'][Math.round(deg / 45) % 8];
+// wind ten opzichte van de vliegrichting: van voren = kopwind, van achteren = rugwind
+function windKlasse(van, vliegKoers, kmh) {
+  if (kmh < 8) return 'stil';
+  const d = Math.abs(((van - vliegKoers + 540) % 360) - 180);
+  return d <= 60 ? 'kop' : d >= 120 ? 'rug' : 'zij';
+}
+const WEER_LABEL = { kop: 'Kopwind', rug: 'Rugwind', zij: 'Zijwind', stil: 'Windstil' };
+const weerTekst = w => `${WEER_LABEL[w.rel]}${w.rel !== 'stil' ? ' ' + Math.round(w.kmh) + ' km/u' : ''} · ${Math.round(w.temp)} °C${w.regen > 0.5 ? ' · regen' : ''}`;
+const tempKlasse = t => t >= 25 ? 'warm' : t <= 12 ? 'koud' : 'normaal';
+function gelijkenis(a, b, ka, kb) {
+  let g = a.rel === b.rel ? 0.4 : (a.rel === 'zij' || b.rel === 'zij') && a.rel !== 'stil' && b.rel !== 'stil' ? 0.15 : 0;
+  const dk = Math.abs(a.kmh - b.kmh); g += dk < 10 ? 0.2 : dk < 20 ? 0.1 : 0;
+  if (tempKlasse(a.temp) === tempKlasse(b.temp)) g += 0.2;
+  if ((a.regen > 0.5) === (b.regen > 0.5)) g += 0.1;
+  const ak = k => k < 300 ? 0 : k < 550 ? 1 : 2; if (ak(ka || 300) === ak(kb || 300)) g += 0.1;
+  return g;
+}
+const weerLaden = new Set();
+async function geocode(naam) {
+  const j = await (await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(naam)}&count=1&language=nl&format=json`)).json();
+  const g = j.results?.[0]; return g ? { lat: g.latitude, lon: g.longitude, land: g.country_code } : null;
+}
+async function haalVluchtWeer(v, force) {
+  if (weerLaden.has(v.id) || !navigator.onLine || !v.plaats) return;
+  const n = dagenTot(v.datum);
+  if (n > 15) return;
+  if (v.weer && !force && (v.weer.bron !== 'verwachting' || Date.now() - v.weer.tijd < 3 * 3600e3)) return;
+  weerLaden.add(v.id);
+  try {
+    if (v.lat == null) { const g = await geocode(v.plaats); if (!g) { v.weerFout = `Lossingsplaats “${v.plaats}” niet gevonden.`; return; } Object.assign(v, g); }
+    const thuis = { lat: S.inst.lat, lon: S.inst.lon };
+    if (!v.afstand) v.afstand = Math.round(afstandKm(v, thuis));
+    const mid = { lat: (v.lat + thuis.lat) / 2, lon: (v.lon + thuis.lon) / 2 };
+    const basis = n < -5 ? 'https://archive-api.open-meteo.com/v1/archive' : 'https://api.open-meteo.com/v1/forecast';
+    const j = await (await fetch(`${basis}?latitude=${mid.lat.toFixed(3)}&longitude=${mid.lon.toFixed(3)}&hourly=temperature_2m,precipitation,wind_speed_10m,wind_direction_10m&start_date=${v.datum}&end_date=${v.datum}&timezone=auto`)).json();
+    if (!j.hourly) throw new Error('geen weer');
+    const start = v.lostijd ? Math.floor(minuten(v.lostijd) / 60) : 8, duur = Math.max(2, Math.ceil((v.afstand || 300) / 70));
+    const H = j.hourly; let u = 0, w = 0, sp = 0, tp = 0, rg = 0, n2 = 0;
+    for (let h = start; h < Math.min(24, start + duur); h++) {
+      const s = H.wind_speed_10m[h] ?? 0, d = rad(H.wind_direction_10m[h] ?? 0);
+      u += s * Math.sin(d); w += s * Math.cos(d); sp += s; tp += H.temperature_2m[h] ?? 0; rg += H.precipitation[h] ?? 0; n2++;
+    }
+    const kmh = sp / n2, van = (Math.atan2(u, w) * 180 / Math.PI + 360) % 360;
+    v.weer = { kmh, van, temp: tp / n2, regen: rg, rel: windKlasse(van, koers(v, thuis), kmh), bron: n >= 0 ? 'verwachting' : 'gemeten', tijd: Date.now() };
+    delete v.weerFout;
+  } catch { v.weerFout = 'Weer kon niet worden opgehaald.'; }
+  finally { weerLaden.delete(v.id); bewaar(); if (['vlucht', 'vandaag', 'duif'].includes(route().naam)) render(); }
+}
+async function weerVoorVluchten() { for (const v of S.vluchten.filter(v => !v.weerFout && (!v.weer || v.weer.bron === 'verwachting')).slice(0, 12)) await haalVluchtWeer(v); }
+
+function kuurGeblokt(datum) {
+  const hokken = S.kuren.filter(k => k.start <= datum && plus(k.dagen + (k.wachttijd || 0), k.start) > datum).map(k => k.hok);
+  return d => hokken.includes(d.hok) || hokken.includes('Alle hokken');
+}
+// Welke duiven vlogen goed bij vergelijkbaar weer?
+function inkorfAdvies(v) {
+  if (!v.weer) return null;
+  const vgl = S.vluchten.filter(x => x !== v && x.weer && x.datum < v.datum)
+    .map(x => ({ x, g: gelijkenis(v.weer, x.weer, v.afstand, x.afstand), res: analyse(x) })).filter(o => o.g >= 0.5);
+  const geblokt = kuurGeblokt(v.datum);
+  const lijst = S.duiven.filter(d => d.status === 'vlieg').map(d => {
+    let som = 0, gew = 0; const details = [];
+    for (const o of vgl) { const r = o.res.find(y => y.duif === d.id); if (!r || r.pct == null) continue; som += r.pct * o.g; gew += o.g; details.push(`${o.x.plaats} ${r.plaats ? r.plaats + 'e' : 'niet thuis'}`); }
+    const alg = prestaties(d.id).gem, gem = gew ? som / gew : null;
+    return { d, gem, n: details.length, details, alg, geblokt: geblokt(d), naarVoren: gem != null && (gem <= 25 || (alg != null && gem < alg - 12)) };
+  });
+  return { vgl, lijst: lijst.filter(x => x.gem != null).sort((a, b) => a.gem - b.gem), zonder: lijst.filter(x => x.gem == null) };
+}
+function adviesInkorven(vid) {
+  const v = S.vluchten.find(x => x.id === vid), a = inkorfAdvies(v);
+  const mee = a.lijst.filter(x => !x.geblokt && x.gem <= 50).map(x => x.d);
+  wijzig(() => mee.forEach(d => { if (!v.uitslag.some(u => u.duif === d.id)) v.uitslag.push({ duif: d.id, aankomst: null, plaats: null }); }), `${mee.length} duiven ingekorfd volgens advies`);
+}
+function weerProfiel(id) {
+  const g = {};
+  for (const v of S.vluchten) {
+    if (!v.weer) continue;
+    const x = analyse(v).find(y => y.duif === id); if (!x || x.pct == null) continue;
+    const keys = [WEER_LABEL[v.weer.rel]]; if (v.weer.temp >= 25) keys.push('Warm'); if (v.weer.temp <= 12) keys.push('Koud'); if (v.weer.regen > 0.5) keys.push('Regen');
+    keys.forEach(k => (g[k] ??= []).push(x.pct));
+  }
+  return Object.entries(g).map(([k, a]) => ({ k, n: a.length, gem: a.reduce((s, x) => s + x, 0) / a.length })).sort((a, b) => a.gem - b.gem);
+}
+function weerProfielHtml(id) {
+  const l = weerProfiel(id);
+  if (!l.length) return '';
+  return `<div class="sectie">Weerprofiel</div><div class="kaart"><div class="filters" style="flex-wrap:wrap">${l.map(o => `<span class="label ${o.gem <= 25 ? '' : o.gem >= 55 ? 'rood' : 'oranje'}">${o.k}: ${Math.round(o.gem)}% (${o.n}×)</span>`).join('')}</div><small style="color:var(--grijs)">Gemiddeld prijspercentage per soort weer – lager is beter.</small></div>`;
+}
+
+// ---------- dagboek ----------
+const CAT = { voer: '🌾 Voer', bij: '💧 Bijproducten', medicatie: '💊 Medicatie', training: '🕊 Opvliegen/training', rust: '😴 Rust', overig: '📝 Overig' };
+function dagCat(t) {
+  t = t.toLowerCase();
+  if (/kuur|tricho|geel|ornithose|cocci|worm|antibio|medicijn|ronidazole|vaccin|ent\b/.test(t)) return 'medicatie';
+  if (/opvlieg|opgevlogen|training|getraind|gelost|africht|minuten|\bkm\b|los gelaten|losgelaten/.test(t)) return 'training';
+  if (/vitamine|elektrolyt|olie|knoflook|thee|azijn|biergist|probiot|grit|mineralen|bad\b|honing|druivensuiker|glucose/.test(t)) return 'bij';
+  if (/voer|mengeling|gerst|pinda|graan|zuivering|sport|depuratief|gram|maïs|mais|koolzaad|tarwe|rijst/.test(t)) return 'voer';
+  if (/rust|binnen gehouden|thuis gehouden|niet gevlogen|dicht/.test(t)) return 'rust';
+  return 'overig';
+}
+const TAAKCAT = { voeren: 'voer', water: 'bij', schoon: 'overig', inkorven: 'overig' };
+const catVan = l => l.cat || TAAKCAT[l.taak] || 'overig';
+function logDag(cat, tekst, datum = VANDAAG(), taak = 'dagboek') { S.logboek.push({ id: uid(), datum, tijd: tijdKort(), taak, cat, tekst }); S.logboek = S.logboek.slice(-3000); }
+const hoofdletter = t => t ? t[0].toUpperCase() + t.slice(1) : t;
+function dagboekOpdracht(key, tekst) {
+  if (key === 'gevoerd') {
+    const al = vandaagGedaan('voeren'), t2 = hoofdletter(tekst) || 'Gevoerd';
+    return { wat: `📒 Dagboek ${CAT.voer}: <b>${esc(t2)}</b>` + (al ? '' : `<br><small>${S.voer.perDag} kg van de voorraad af · dagtaak “gevoerd” afgevinkt</small>`),
+      doe: () => { if (!al) S.voer.voorraad = Math.max(0, +(S.voer.voorraad - S.voer.perDag).toFixed(1)); logDag('voer', t2, VANDAAG(), al ? 'dagboek' : 'voeren'); } };
+  }
+  if (key === 'opgevlogen') { const t2 = 'Opgevlogen' + (tekst ? ' ' + tekst : ''); return { wat: `📒 Dagboek ${CAT.training}: <b>${esc(t2)}</b>`, doe: () => logDag('training', t2) }; }
+  if (!tekst) return { fout: 'Wat wil je in het dagboek zetten? Zeg bijv. “dagboek sportmengeling met pinda’s”.' };
+  const cat = dagCat(tekst), t2 = hoofdletter(tekst);
+  return { wat: `📒 Dagboek ${CAT[cat]}: <b>${esc(t2)}</b>`, doe: () => logDag(cat, t2) };
+}
+// Kenmerken uit de week voor een datum ("sportmengeling", "pinda's", "opgevlogen 60 minuten")
+function weekKenmerken(datum) {
+  const set = new Set();
+  S.logboek.filter(l => l.datum < datum && l.datum >= plus(-7, datum) && l.tekst && !/^ingekorfd/i.test(l.tekst))
+    .forEach(l => l.tekst.toLowerCase().split(/\s*[+,;&]\s*|\s+en\s+|\s+met\s+/).map(x => x.trim().replace(/[.!]+$/, '')).filter(x => x.length > 2).forEach(x => set.add(x)));
+  return set;
+}
+// Wat deed je vaker voor je beste vluchten dan voor de andere?
+function watWerkte() {
+  const vl = S.vluchten.filter(v => v.datum < VANDAAG() && analyse(v).some(x => x.pct != null));
+  if (vl.length < 4) return null;
+  const sc = v => { const l = analyse(v).filter(x => x.pct != null).map(x => x.pct); return l.reduce((a, b) => a + b, 0) / l.length; };
+  const ger = vl.map(v => ({ v, s: sc(v), k: weekKenmerken(v.datum) })).filter(g => g.k.size).sort((a, b) => a.s - b.s);
+  if (ger.length < 4) return null;
+  const nTop = Math.max(2, Math.round(ger.length / 3)), top = ger.slice(0, nTop), rest = ger.slice(nTop);
+  const uit = [...new Set(ger.flatMap(g => [...g.k]))].map(k => {
+    const t = top.filter(g => g.k.has(k)).length, r = rest.filter(g => g.k.has(k)).length;
+    return { k, t, r, ft: t / top.length, fr: r / rest.length };
+  });
+  return {
+    top, rest,
+    beter: uit.filter(o => o.ft >= 0.6 && o.ft - o.fr >= 0.3).sort((a, b) => (b.ft - b.fr) - (a.ft - a.fr)).slice(0, 6),
+    minder: uit.filter(o => o.fr >= 0.4 && o.fr - o.ft >= 0.3).sort((a, b) => (b.fr - b.ft) - (a.fr - a.ft)).slice(0, 4),
+  };
+}
+function watWerkteHtml(kort) {
+  const w = watWerkte();
+  if (!w) return kort ? '' : '<div class="kaart leeg">Na 4 vluchten met dagboek ziet de app wat je deed vóór je beste vluchten.</div>';
+  if (!w.beter.length && !w.minder.length) return kort ? '' : '<div class="kaart leeg">Nog geen duidelijk verschil tussen de week vóór je beste en mindere vluchten.</div>';
+  return `<div class="kaart melding"><div class="ico">🔎</div><div><b>Wat je deed vóór je beste vluchten</b>
+    <small>Beste: ${w.top.map(g => esc(g.v.plaats)).join(', ')}</small>
+    ${w.beter.map(o => `<div>✔ “${esc(o.k)}” <small>– ${o.t} van ${w.top.length} beste, ${o.r} van ${w.rest.length} andere</small></div>`).join('')}
+    ${w.minder.map(o => `<div style="color:var(--rood)">✖ “${esc(o.k)}” <small>– vaker vóór mindere vluchten (${o.r} van ${w.rest.length})</small></div>`).join('')}</div></div>`;
+}
+function weekHtml(datum, titel) {
+  const l = S.logboek.filter(x => x.datum < datum && x.datum >= plus(-7, datum)).sort((a, b) => (a.datum + a.tijd).localeCompare(b.datum + b.tijd));
+  const kuren = S.kuren.filter(k => k.start < datum && plus(k.dagen, k.start) > plus(-7, datum));
+  if (!l.length && !kuren.length) return '';
+  const dagen = [...new Set(l.map(x => x.datum))];
+  return `<div class="sectie">${titel}</div><div class="kaart">${kuren.map(k => `<div>💊 Kuur ${esc(k.naam)} (${esc(k.hok)}) ${fmtD(k.start)} – ${fmtD(plus(k.dagen - 1, k.start))}</div>`).join('')}
+    ${dagen.map(d => `<div class="rij" style="align-items:flex-start"><b style="width:70px;flex:none">${fmtD(d)}</b><div class="groot">${l.filter(x => x.datum === d).map(x => `<div>${CAT[catVan(x)].split(' ')[0]} ${esc(x.tekst)}</div>`).join('')}</div></div>`).join('')}</div>`;
+}
+
+let dagboekWeek = 0;
+function vDagboek() {
+  const maandag = (() => { const d = vandaag(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + dagboekWeek * 7); return iso(d); })();
+  const dagen = [...Array(7)].map((_, i) => plus(i, maandag));
+  return ['Dagboek', `
+    <div class="knoppen" style="margin:0 0 10px"><button class="knop licht" onclick="dagboekWeek--;render()">‹ Vorige</button><button class="knop licht" onclick="dagboekWeek=0;render()">Deze week</button><button class="knop licht" onclick="dagboekWeek++;render()">Volgende ›</button></div>
+    <div class="kaart">${dagen.map(d => {
+      const l = S.logboek.filter(x => x.datum === d).sort((a, b) => a.tijd.localeCompare(b.tijd));
+      const vl = S.vluchten.filter(v => v.datum === d), ku = S.kuren.filter(k => k.start <= d && plus(k.dagen, k.start) > d);
+      return `<div class="rij" style="align-items:flex-start;${d === VANDAAG() ? 'background:var(--groen-l);border-radius:8px' : ''}"><b style="width:70px;flex:none">${fmtD(d)}</b><div class="groot">
+        ${vl.map(v => `<div><a href="#/vlucht/${v.id}">🏁 ${esc(v.plaats)}</a>${v.weer ? ` <small>${esc(weerTekst(v.weer))}</small>` : ''}</div>`).join('')}
+        ${ku.map(k => `<div>💊 <small>Kuur ${esc(k.naam)} (${esc(k.hok)})</small></div>`).join('')}
+        ${l.map(x => `<div>${CAT[catVan(x)].split(' ')[0]} ${esc(x.tekst)} <small style="color:var(--grijs)">${x.tijd}</small>${x.id ? ` <a href="javascript:void 0" style="color:var(--grijs)" onclick="wijzig(()=>S.logboek=S.logboek.filter(y=>y.id!=='${x.id}'),'Verwijderd')">✕</a>` : ''}</div>`).join('') || (vl.length || ku.length ? '' : '<small style="color:var(--grijs)">–</small>')}
+      </div></div>`;
+    }).join('')}
+    <button class="knop licht vol" onclick="nieuweNotitie()">＋ Notitie</button></div>
+    <p style="color:var(--grijs);margin:4px">Spreek in: “gevoerd sportmengeling met pinda’s” · “opgevlogen 45 minuten” · “dagboek elektrolyten in het water”.</p>
+    <div class="sectie">Analyse</div>${watWerkteHtml(false)}`];
+}
+function nieuweNotitie() {
+  formulier('Dagboek', [
+    { naam: 'datum', label: 'Datum', type: 'date', waarde: VANDAAG() },
+    { naam: 'cat', label: 'Soort', waarde: 'voer', opties: Object.entries(CAT) },
+    { naam: 'tekst', label: 'Wat heb je gedaan?', waarde: '' },
+  ], f => { if (f.tekst.trim()) logDag(f.cat, hoofdletter(f.tekst.trim()), f.datum); });
+}
+
+// extra kaarten op de vluchtpagina: weer, inkorfadvies, dagboekweek
+function vluchtExtra(v) {
+  let h = '';
+  if (v.weer) h += `<div class="kaart melding blauw"><div class="ico">🌬</div><div><b>${esc(weerTekst(v.weer))}</b><small>${v.weer.bron === 'verwachting' ? 'Verwachting' : v.weer.bron === 'voorbeeld' ? 'Voorbeeldweer' : 'Gemeten'} onderweg · vliegrichting ${richtingNaam(koers(v, S.inst))}${v.weer.rel !== 'stil' ? ' · wind uit ' + richtingNaam(v.weer.van) : ''}${kpVoor(v.datum) != null ? ' · ' + kpTekst(kpVoor(v.datum)) : ''}</small></div></div>`;
+  else if (weerLaden.has(v.id)) h += '<div class="kaart leeg">Weer wordt opgehaald…</div>';
+  else if (v.weerFout) h += `<div class="kaart melding oranje"><div>${esc(v.weerFout)} <button class="knop licht" style="padding:6px 10px" onclick="delete S.vluchten.find(x=>x.id==='${v.id}').weerFout;haalVluchtWeer(S.vluchten.find(x=>x.id==='${v.id}'),true);render()">Opnieuw</button></div></div>`;
+  else if (dagenTot(v.datum) > 15) h += '<div class="kaart leeg">De weerverwachting komt 16 dagen vooraf beschikbaar.</div>';
+  if (v.datum >= VANDAAG() && v.weer) {
+    const a = inkorfAdvies(v);
+    h += `<div class="sectie">Inkorfadvies bij dit weer</div>`;
+    if (!a.vgl.length) h += '<div class="kaart leeg">Nog geen eerdere vluchten met vergelijkbaar weer. Hoe meer uitslagen, hoe beter het advies.</div>';
+    else h += `<div class="kaart"><small style="color:var(--grijs)">Vergelijkbaar weer: ${a.vgl.map(o => `${esc(o.x.plaats)} (${esc(WEER_LABEL[o.x.weer.rel].toLowerCase())})`).join(', ')}</small>
+      <table><tr><th>Duif</th><th class="n">Dit weer</th><th class="n">Normaal</th><th></th></tr>
+      ${a.lijst.map(x => `<tr onclick="location.hash='#/duif/${x.d.id}'"><td>${ringHtml(x.d.ring)}${x.d.naam ? `<br><small style="color:var(--grijs)">${esc(x.d.naam)}</small>` : ''}</td><td class="n">${Math.round(x.gem)}% <small>(${x.n}×)</small></td><td class="n">${x.alg != null ? Math.round(x.alg) + '%' : '–'}</td>
+        <td>${x.geblokt ? '<span class="label rood">kuur</span>' : x.naarVoren ? '<span class="label">⬆ naar voren</span>' : x.gem > 60 ? '<span class="label oranje">liever niet</span>' : ''}</td></tr>`).join('')}</table>
+      ${a.zonder.length ? `<small style="color:var(--grijs)">Nog geen gegevens bij dit weer: ${a.zonder.map(x => esc(x.d.ring.slice(-4))).join(', ')}</small>` : ''}
+      <button class="knop vol" style="margin-top:8px" onclick="adviesInkorven('${v.id}')">✔ Advies overnemen: ${a.lijst.filter(x => !x.geblokt && x.gem <= 50).length} duiven inkorven</button></div>`;
+  }
+  if (v.datum >= VANDAAG()) h += watWerkteHtml(true);
+  else h += weekHtml(v.datum, '📒 De week vóór deze vlucht');
+  return h;
+}
 function dialoog(html) { $('#dlg-body').innerHTML = html; if (!$('#dlg').open) $('#dlg').showModal(); }
 function sluit() { stopCam(); stopLuister(); if ($('#dlg').open) $('#dlg').close(); }
 $('#dlg').addEventListener('close', () => { stopCam(); stopLuister(); });
@@ -340,7 +634,7 @@ function vVandaag() {
   const w = S.weer;
   const weer = S.inst.vorstTest ? '❄ Vorsttest staat aan' : w ? `🌡 Vannacht ${w.min[0].toFixed(0)} °C · morgen ${w.min[1].toFixed(0)} / ${w.max[1].toFixed(0)} °C · ${esc(S.inst.plaats)}` : navigator.onLine ? 'Weer wordt geladen…' : 'Geen internet – weer volgt later';
   const datum = vandaag().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
-  const laatste = [...S.vluchten].sort((a, b) => b.datum.localeCompare(a.datum))[0];
+  const laatste = [...S.vluchten].filter(v => v.datum <= VANDAAG() && v.uitslag.some(u => u.plaats)).sort((a, b) => b.datum.localeCompare(a.datum))[0];
   let top = '';
   if (laatste) {
     const res = analyse(laatste).filter(x => x.plaats).sort((a, b) => a.plaats - b.plaats).slice(0, 3);
@@ -352,6 +646,8 @@ function vVandaag() {
     ${S.demo ? `<div class="kaart melding blauw"><div class="ico">👋</div><div><b>Je kijkt naar voorbeeldgegevens</b><small>Kanon, Dirkje en de rest zijn om mee te oefenen. Klaar? Begin met je eigen hok.</small><div class="knoppen"><button class="knop" onclick="startEigenHok()">Start met mijn eigen hok</button></div></div></div>` : ''}
     <div style="margin:2px 4px 10px"><b style="font-size:20px;text-transform:capitalize">${datum}</b><br><small style="color:var(--grijs)">${weer}</small></div>
     ${m.length ? m.map(x => `<a class="kaart melding ${x.kl}" href="${x.href}" style="text-decoration:none;color:inherit"><div class="ico">${x.ico}</div><div><b>${esc(x.titel)}</b><small>${esc(x.sub)}</small></div></a>`).join('') : '<div class="kaart leeg">Niets dringends vandaag 👍</div>'}
+    ${(() => { const ad = africhtAdvies(0); if (!ad) return ''; const mo = africhtAdvies(1);
+      return `<a class="kaart melding ${ad.oordeel === 'slecht' ? 'rood' : ad.oordeel === 'twijfel' ? 'oranje' : ''}" href="#/training" style="text-decoration:none;color:inherit"><div class="ico">${ad.oordeel === 'slecht' ? '🏠' : ad.oordeel === 'twijfel' ? '⚠' : '🕊'}</div><div><b>Vandaag: ${ad.titel}</b><small>${esc(ad.uitleg)}${mo ? `<br>Morgen: ${mo.titel.toLowerCase()} – ${esc(mo.uitleg)}` : ''}</small></div></a>`; })()}
     <div class="sectie">Dagtaken</div>
     <div class="kaart" style="display:flex;gap:8px;flex-wrap:wrap">${Object.entries(DAGTAKEN).map(([k, v]) => { const g = vandaagGedaan(k); return `<button class="knop ${g ? '' : 'licht'}" style="flex:1;min-width:30%;padding:10px 6px;font-size:15px" ${g ? 'disabled' : `onclick="wijzig(()=>doeTaak('${k}'),'${v.slice(3)} – afgevinkt')"`}>${v}<br><small style="font-weight:400">${g ? '✔ ' + g.tijd : 'nog doen'}</small></button>`; }).join('')}</div>
     ${top}
@@ -407,6 +703,7 @@ function vDuif(id) {
     ${p.n ? `<div class="stat"><div><b>${p.n}</b><small>vluchten</small></div><div><b>${p.prijzen}</b><small>prijzen</small></div><div><b>${p.gem != null ? Math.round(p.gem) + '%' : '–'}</b><small>gem. prijs%</small></div><div><b>${p.telaat + p.niet}</b><small>te laat/weg</small></div></div>` : ''}
     <div class="sectie">Status</div>
     <div class="filters" style="flex-wrap:wrap">${Object.entries(STATUS).map(([k, v]) => `<button class="${d.status === k ? 'aan' : ''}" onclick="zetStatus('${id}','${k}')">${v[0]}</button>`).join('')}</div>
+    ${weerProfielHtml(id)}
     ${rijen.length ? `<div class="sectie">Resultaten</div><div class="kaart"><table><tr><th>Vlucht</th><th class="n">km</th><th class="n">m/min</th><th class="n">Plaats</th><th></th></tr>
       ${rijen.map(({ v, x }) => `<tr onclick="location.hash='#/vlucht/${v.id}'"><td>${esc(v.plaats)}<br><small style="color:var(--grijs)">${fmtD(v.datum)}</small></td><td class="n">${v.afstand}</td><td class="n">${x.sn ? Math.round(x.sn) : '–'}</td><td class="n">${x.plaats ? x.plaats + '/' + v.deelnemers : '–'}</td><td>${labelRes(x)}</td></tr>`).join('')}</table></div>` : ''}
     ${(d.vader || d.moeder) ? `<div class="sectie">Stamboom</div><div class="kaart">
@@ -416,6 +713,7 @@ function vDuif(id) {
     <div class="sectie">QR-sticker</div><div class="kaart"><span class="qr-code">DUIF:RING:${esc(d.ring)}</span><br><small>Deze code komt op het duivenkaartje. Scannen opent deze kaart.</small></div>`];
 }
 function labelRes(x) {
+  if (x.gepland) return '<span class="label blauw">ingekorfd</span>';
   if (x.onderweg) return '<span class="label blauw">onderweg</span>';
   if (x.nietThuis) return '<span class="label rood">niet thuis</span>';
   if (x.prijs) return '<span class="label">prijs</span>';
@@ -461,7 +759,7 @@ function vVluchten() {
     <div class="kaart">${l.map(v => {
       const a = analyse(v);
       return `<a class="rij" href="#/vlucht/${v.id}"><div class="groot"><b>${esc(v.plaats)}</b><small>${fmtDJ(v.datum)} · ${v.afstand} km</small></div>
-        <div class="rechts"><b>${a.filter(x => x.prijs).length}/${a.length}</b><br><small>prijzen</small></div></a>`;
+        <div class="rechts">${v.datum > VANDAAG() ? `<span class="label blauw">gepland</span>${v.weer ? `<br><small>${esc(WEER_LABEL[v.weer.rel])}</small>` : ''}` : `<b>${a.filter(x => x.prijs).length}/${a.length}</b><br><small>prijzen</small>`}</div></a>`;
     }).join('') || '<div class="leeg">Nog geen vluchten</div>'}</div>`];
 }
 function vluchtVelden(v = {}) {
@@ -476,7 +774,8 @@ function vluchtVelden(v = {}) {
 function nieuweVlucht() {
   formulier('Nieuwe vlucht', vluchtVelden(), f => {
     const id = uid();
-    S.vluchten.push({ id, ...f, uitslag: S.duiven.filter(d => d.status === 'vlieg').map(d => ({ duif: d.id, aankomst: null, plaats: null })) });
+    // een vlucht in de toekomst begint leeg: dan kies je met het inkorfadvies wie meegaat
+    S.vluchten.push({ id, ...f, uitslag: f.datum > VANDAAG() ? [] : S.duiven.filter(d => d.status === 'vlieg').map(d => ({ duif: d.id, aankomst: null, plaats: null })) });
     setTimeout(() => location.hash = '#/vlucht/' + id);
   });
 }
@@ -484,15 +783,25 @@ function vVlucht(id) {
   const v = S.vluchten.find(x => x.id === id);
   if (!v) return ['Vlucht', '<div class="kaart leeg">Niet gevonden</div>'];
   const a = analyse(v).sort((x, y) => (x.aankomst || '99').localeCompare(y.aankomst || '99'));
+  if (!v.weerFout && (!v.weer || v.weer.bron === 'verwachting')) setTimeout(() => haalVluchtWeer(v));
   return [v.plaats, `
     <div class="stat"><div><b>${v.afstand || '–'}</b><small>km</small></div><div><b>${v.lostijd ? v.lostijd.slice(0, 5) : '–'}</b><small>lostijd</small></div><div><b>${v.deelnemers || '–'}</b><small>in concours</small></div><div><b>${a.filter(x => x.prijs).length}</b><small>prijzen</small></div></div>
     <p style="color:var(--grijs);margin:8px 4px">${fmtDJ(v.datum)} · Prijs = bij de eerste derde (1:3). Te laat = meer dan 10% trager dan je snelste duif.</p>
+    ${vluchtExtra(v)}
+    ${a.length ? '<div class="sectie">Uitslag</div>' : ''}
     <div class="kaart"><table><tr><th>Duif</th><th class="n">Aankomst</th><th class="n">m/min</th><th class="n">Plaats</th><th></th></tr>
     ${a.map(x => `<tr onclick="aankomstInvoer('${id}','${x.duif}')"><td>${ringHtml(duif(x.duif)?.ring || '?')}</td><td class="n">${x.aankomst || '–'}</td><td class="n">${x.sn ? Math.round(x.sn) : '–'}</td><td class="n">${x.plaats || '–'}</td><td>${labelRes(x)}</td></tr>`).join('')}
     </table><small style="color:var(--grijs)">Tik op een regel om de aankomst of plaats in te vullen.</small></div>
     <div class="knoppen"><button class="knop licht" onclick="duifBijVlucht('${id}')">＋ Duif</button><button class="knop licht" onclick="bewerkVlucht('${id}')">Vlucht bewerken</button></div>`];
 }
-function bewerkVlucht(id) { const v = S.vluchten.find(x => x.id === id); formulier('Vlucht bewerken', vluchtVelden(v), f => Object.assign(v, f)); }
+function bewerkVlucht(id) {
+  const v = S.vluchten.find(x => x.id === id);
+  formulier('Vlucht bewerken', vluchtVelden(v), f => {
+    if (f.plaats !== v.plaats) { delete v.lat; delete v.lon; }
+    if (f.plaats !== v.plaats || f.datum !== v.datum || f.lostijd !== v.lostijd) { delete v.weer; delete v.weerFout; }
+    Object.assign(v, f);
+  });
+}
 function aankomstInvoer(vid, pid) {
   const v = S.vluchten.find(x => x.id === vid), u = v.uitslag.find(x => x.duif === pid);
   formulier(duif(pid).ring, [
@@ -530,6 +839,7 @@ function vMeer() {
     ${t('#/verkoop', '🏷', 'Verkoop', `${S.duiven.filter(d => d.status === 'verkoop').length} te koop`)}
     ${t('#/eruit', '✂', 'Eruit', `${eruitVoorstellen().length} voorstellen`)}
     ${t('#/hok/Hok 1', '🏠', 'Hokken', 'Per hok bekijken')}
+    ${t('#/dagboek', '📒', 'Dagboek', 'Voer, bijproducten, training')}
     ${t('#/commandos', '🎙', 'Commando\u2019s', 'Vaste spraakwoorden')}
     ${t('#/woorden', '🗣', 'Mijn woorden', `${S.snel.length} snelopdrachten`)}
     ${t('#/instellingen', '⚙', 'Instellingen', 'Locatie, meldingen')}
@@ -647,7 +957,12 @@ function nieuweKuur(hok, naam = '', dagen = 5) {
 
 function vTraining() {
   const l = [...S.trainingen].sort((a, b) => a.datum.localeCompare(b.datum));
-  return ['Africhten & trainen', `<div class="kaart">${l.map(t => `
+  const advies = [0, 1, 2].map(i => africhtAdvies(i)).filter(Boolean);
+  return ['Africhten & trainen', `
+    ${advies.length ? `<div class="sectie">Africhtweer bij je hok</div><div class="kaart">${advies.map(a => `<div class="rij"><div class="groot"><b>${fmtD(a.datum)}: ${a.titel}</b><small>${esc(a.uitleg)}</small></div><span class="label ${a.oordeel === 'slecht' ? 'rood' : a.oordeel === 'twijfel' ? 'oranje' : ''}">${a.oordeel === 'slecht' ? 'thuis houden' : a.oordeel === 'twijfel' ? 'twijfel' : 'goed'}</span></div>`).join('')}
+      <small style="color:var(--grijs)">Regen, wind en zicht tussen 9 en 17 uur bij je hok · Kp-index = zonneactiviteit (vanaf 4 opletten, vanaf 5 niet africhten)</small></div>` : ''}
+    <div class="sectie">Gepland</div>
+    <div class="kaart">${l.map(t => `
     <div class="rij"><div class="groot"><b>${t.afstand} km – ${fmtD(t.datum)}</b><small>${esc(t.plaats)} · ${wanneer(dagenTot(t.datum))}</small></div>
     <button class="knop ${t.gedaan ? '' : 'licht'}" style="padding:8px 12px" onclick="wijzig(()=>{const x=S.trainingen.find(y=>y.id==='${t.id}');x.gedaan=!x.gedaan})">${t.gedaan ? '✔ Gedaan' : 'Gedaan?'}</button></div>`).join('')}
     <button class="knop licht vol" onclick="nieuweTraining()">＋ Training plannen</button></div>
@@ -950,6 +1265,14 @@ const KLEURWOORD = /\b(blauwgebandeerd|donkerkras|kras|blauw|rood|rode|schimmel|
 function begrijp(ruw, keuzes = {}, diepte = 0) {
   let t = normaliseer(ruw);
   if (!t) return { fout: 'Ik heb niets gehoord.' };
+  {
+    const ruwL = ruw.trim().replace(/\s+/g, ' ').replace(/[.!?]+$/, ''), kl = ruwL.toLowerCase();
+    for (const key of ['dagboek', 'gevoerd', 'opgevlogen']) {
+      for (const w of cmdWoorden(COMMANDOS.find(x => x.key === key))) {
+        if (kl.startsWith(w + ' ') || kl === w) return dagboekOpdracht(key, ruwL.slice(w.length).trim().replace(/^[:,-]\s*/, ''));
+      }
+    }
+  }
 
   // commando: vast woord + gegevens in vaste volgorde ("binnen 1234 14 32")
   if (diepte < 3) {
@@ -1190,6 +1513,37 @@ function begrijp(ruw, keuzes = {}, diepte = 0) {
       const l = S.duiven.map(d => ({ d, p: prestaties(d.id) })).filter(x => x.p.telaat + x.p.niet).sort((a, b) => (b.p.telaat + b.p.niet) - (a.p.telaat + a.p.niet)).slice(0, 5);
       return { antwoord: 'Vaakst te laat of niet thuis:<br>' + l.map(x => `${ringHtml(x.d.ring)} – ${x.p.telaat}× te laat, ${x.p.niet}× niet thuis`).join('<br>'), html: true };
     }
+    if (/africht|trainen|los laten|loslaten|eruit laten|opvliegen|kunnen ze|mogen ze|weer goed/.test(t)) {
+      const ad = africhtAdvies(/morgen/.test(t) ? 1 : 0);
+      if (!ad) return { antwoord: 'Het weer is nog niet geladen. Heb je internet?' };
+      return { antwoord: `<b>${/morgen/.test(t) ? 'Morgen' : 'Vandaag'}: ${ad.titel}</b><br>${esc(ad.uitleg)}`, html: true, spreek: `${ad.titel}. ${ad.uitleg.replace(/·/g, ',')}` };
+    }
+    if (/\bkp\b|index|zonneactiviteit|magnetisch/.test(t)) {
+      const d = [0, 1, 2].map(i => plus(i)).map(d => ({ d, kp: kpVoor(d) })).filter(x => x.kp != null);
+      if (!d.length) return { antwoord: 'De Kp-index is nog niet geladen. Heb je internet?' };
+      return { antwoord: d.map(x => `${fmtD(x.d)}: <b>${kpTekst(x.kp)}</b>`).join('<br>') + '<br><small>Vanaf 4 opletten (vooral jonge duiven), vanaf 5 niet africhten of lossen.</small>', html: true };
+    }
+    if (/inkorf|inkorven|meenemen|meedoen|meegaan|advies/.test(t)) {
+      const v = S.vluchten.filter(x => x.datum >= VANDAAG()).sort((a, b) => a.datum.localeCompare(b.datum))[0];
+      if (!v) return { antwoord: 'Er staat geen komende vlucht in de app. Maak er een aan bij Vluchten (met datum en lossingsplaats).' };
+      if (!v.weer) return { antwoord: `Vlucht ${esc(v.plaats)} ${wanneer(dagenTot(v.datum))}: het weer is nog niet bekend.`, html: true };
+      const a = inkorfAdvies(v), nv = a.lijst.filter(x => !x.geblokt && x.gem <= 50).slice(0, 8);
+      return { antwoord: `<b>${esc(v.plaats)} ${wanneer(dagenTot(v.datum))}</b> – ${esc(weerTekst(v.weer))}<br>` + (a.vgl.length ? 'Goed bij dit weer: ' + nv.map(x => `${ringHtml(x.d.ring)} ${Math.round(x.gem)}%${x.naarVoren ? ' ⬆' : ''}`).join(' · ') : 'Nog geen vluchten met vergelijkbaar weer.') + `<br><a href="#/vlucht/${v.id}" onclick="sluit()">Open inkorfadvies ›</a>`, html: true };
+    }
+    {
+      const wk = t.match(/\b(kopwind|rugwind|zijwind|windstil|warm|warmte|hitte|regen|koud)\b/);
+      if (wk && /welke|beste|wie|goed|sterk/.test(t)) {
+        const k = { kopwind: 'Kopwind', rugwind: 'Rugwind', zijwind: 'Zijwind', windstil: 'Windstil', warm: 'Warm', warmte: 'Warm', hitte: 'Warm', regen: 'Regen', koud: 'Koud' }[wk[1]];
+        const l = S.duiven.filter(d => d.status === 'vlieg').map(d => ({ d, o: weerProfiel(d.id).find(x => x.k === k) })).filter(x => x.o).sort((a, b) => a.o.gem - b.o.gem).slice(0, 6);
+        if (!l.length) return { antwoord: `Nog geen vluchten met ${k.toLowerCase()}.` };
+        return { antwoord: `Beste duiven bij <b>${k.toLowerCase()}</b>:<br>` + l.map((x, i) => `${i + 1}. ${ringHtml(x.d.ring)} – ${Math.round(x.o.gem)}% (${x.o.n}×)`).join('<br>'), html: true };
+      }
+    }
+    if (/gevoerd|voeding|wat deed ik|wat werkte|piek|topvlucht/.test(t)) {
+      const w = watWerkte();
+      if (!w || !w.beter.length) return { antwoord: 'Nog te weinig dagboek en vluchten om te zien wat werkte. Houd het dagboek bij, dan ziet de app het vanzelf.' };
+      return { antwoord: `Vóór je beste vluchten (${w.top.map(g => esc(g.v.plaats)).join(', ')}) deed je vaak:<br>` + w.beter.map(o => `✔ ${esc(o.k)} <small>(${o.t}/${w.top.length})</small>`).join('<br>'), html: true };
+    }
     if (/beste|voorop|goed/.test(t)) {
       const l = S.duiven.map(d => ({ d, p: prestaties(d.id) })).filter(x => x.p.n >= 2).sort((a, b) => a.p.gem - b.p.gem).slice(0, 5);
       return { antwoord: 'Beste duiven (gem. prijs%):<br>' + l.map((x, i) => `${i + 1}. ${ringHtml(x.d.ring)} – ${Math.round(x.p.gem)}%, ${x.p.prijzen}/${x.p.n} prijs`).join('<br>'), html: true };
@@ -1304,6 +1658,9 @@ const COMMANDOS = [
   { key: 'uitslag', naam: 'Prestaties', woorden: ['uitslag', 'prestatie'], vorm: 'ring', vb: '0457', zin: r => { const m = r.match(RING); return m && `wat heeft ${m[1]} gepresteerd`; } },
   { key: 'waar', naam: 'Waar zit de duif', woorden: ['waar'], vorm: 'ring', vb: '1234', zin: r => { const m = r.match(/^(\d{3,7})$/); return m && `waar zit ${m[1]}`; } },
   { key: 'voer', naam: 'Voer binnen', woorden: ['voer'], vorm: 'kilo [euro]', vb: '20 18', zin: r => { const m = r.match(/^(\d+(?:[.,]\d+)?)\s*(?:kilo)?\s*(?:(\d+(?:[.,]\d+)?)\s*(?:euro)?)?$/); return m && `${m[1]} kilo voer gekocht${m[2] ? ' ' + m[2] + ' euro' : ''}`; } },
+  { key: 'gevoerd', naam: 'Gevoerd (wat)', woorden: ['gevoerd'], vorm: '[wat]', vb: 'sportmengeling met pinda’s', zin: () => null },
+  { key: 'opgevlogen', naam: 'Opvliegen / training', woorden: ['opgevlogen'], vorm: '[hoe lang]', vb: '45 minuten', zin: () => null },
+  { key: 'dagboek', naam: 'Dagboek-notitie', woorden: ['dagboek', 'noteer'], vorm: 'tekst', vb: 'elektrolyten in het water', zin: () => null },
   { key: 'ringen', naam: 'Ringen binnen', woorden: ['ringen'], vorm: 'aantal', vb: '30', zin: r => { const m = r.match(/^(\d+)$/); return m && `${m[1]} ringen gekocht`; } },
 ];
 const cmdWoorden = c => (S.commandos[c.key]?.length ? S.commandos[c.key] : c.woorden);
@@ -1355,7 +1712,7 @@ const ACTIES = {
 const DAGTAKEN = { voeren: '🌾 Gevoerd', water: '💧 Water ververst', schoon: '🧹 Hok schoon' };
 const tijdKort = () => new Date().toTimeString().slice(0, 5);
 const vandaagGedaan = taak => S.logboek.find(l => l.datum === VANDAAG() && l.taak === taak);
-function logTaak(taak, tekst) { S.logboek.push({ datum: VANDAAG(), tijd: tijdKort(), taak, tekst }); S.logboek = S.logboek.slice(-500); }
+function logTaak(taak, tekst) { S.logboek.push({ id: uid(), datum: VANDAAG(), tijd: tijdKort(), taak, cat: TAAKCAT[taak] || 'overig', tekst }); S.logboek = S.logboek.slice(-3000); }
 function doeTaak(taak) {
   if (taak === 'voeren') S.voer.voorraad = Math.max(0, +(S.voer.voorraad - S.voer.perDag).toFixed(1));
   logTaak(taak, DAGTAKEN[taak]);
@@ -1568,7 +1925,7 @@ function codeGescand(code) {
 $('#scan-btn').onclick = scan;
 
 // ---------- router ----------
-const ROUTES = { vandaag: vVandaag, duiven: vDuiven, duif: vDuif, vluchten: vVluchten, vlucht: vVlucht, ranglijst: vRanglijst, meer: vMeer, kweek: vKweek, nestbak: vNestbak, hok: vHok, gezondheid: vGezondheid, training: vTraining, voer: vVoer, afspraken: vAfspraken, kosten: vKosten, verkoop: vVerkoop, eruit: vEruit, instellingen: vInstellingen, woorden: vWoorden, commandos: vCommandos };
+const ROUTES = { vandaag: vVandaag, duiven: vDuiven, duif: vDuif, vluchten: vVluchten, vlucht: vVlucht, ranglijst: vRanglijst, meer: vMeer, kweek: vKweek, nestbak: vNestbak, hok: vHok, gezondheid: vGezondheid, training: vTraining, voer: vVoer, afspraken: vAfspraken, kosten: vKosten, verkoop: vVerkoop, eruit: vEruit, instellingen: vInstellingen, woorden: vWoorden, commandos: vCommandos, dagboek: vDagboek };
 const TAB = { vandaag: 'vandaag', duiven: 'duiven', duif: 'duiven', vluchten: 'vluchten', vlucht: 'vluchten', ranglijst: 'vluchten' };
 function route() { const [naam, ...rest] = location.hash.slice(2).split('/'); return { naam: ROUTES[naam] ? naam : 'vandaag', arg: decodeURIComponent(rest.join('/')) }; }
 let vorigeRoute = '';
@@ -1585,8 +1942,9 @@ function render() {
 }
 $('#back').onclick = () => history.length > 1 ? history.back() : (location.hash = '#/vandaag');
 window.addEventListener('hashchange', render);
-window.addEventListener('online', () => haalWeer(true));
+window.addEventListener('online', () => { haalWeer(true); haalKp(true); weerVoorVluchten(); });
 
 render();
-haalWeer();
+haalWeer().then(() => weerVoorVluchten());
+haalKp();
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js');
