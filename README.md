@@ -1,5 +1,6 @@
 # DuivenApp
-n**Online (prototype):** https://ahmadmajid.github.io/duivenapp/
+
+**Online (prototype):** https://ahmadmajid.github.io/duivenapp/
 
 Installeren: Android → Chrome → "App installeren". iPhone → Safari → Deel → "Zet op beginscherm".
 
