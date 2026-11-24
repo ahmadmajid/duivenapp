@@ -1,5 +1,5 @@
 // Service worker: houdt de app beschikbaar zonder internet.
-const CACHE = 'duivenapp-v6';
+const CACHE = 'duivenapp-v7';
 const FILES = ['./', './index.html', './app.js', './style.css', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {

@@ -169,6 +169,13 @@ for (const k of ['duiven', 'vluchten', 'kosten', 'nestbakken', 'vaccinaties', 'k
 S.voer ??= { voorraad: 0, perDag: 0, levertijd: 3, prijsPerKg: 0 };
 S.producten ??= {};
 const bewaar = () => localStorage.setItem(KEY, JSON.stringify(S));
+function pasThemaToe() {
+  const keuze = S?.inst?.thema || 'auto';
+  const donker = keuze === 'donker' || (keuze === 'auto' && !matchMedia('(prefers-color-scheme: light)').matches);
+  document.documentElement.dataset.thema = donker ? 'donker' : 'licht';
+  document.querySelector('meta[name=theme-color]').content = donker ? '#05080c' : '#eef3f2';
+}
+matchMedia('(prefers-color-scheme: light)').addEventListener?.('change', pasThemaToe);
 S.ringen ??= { voorraad: 12, minimum: 10 };
 S.ringen.volgende ??= `NL-${new Date().getFullYear()}-`;
 S.ringen.laatste ??= [];
@@ -629,6 +636,48 @@ function formulier(titel, velden, opslaan) {
 const duifOpties = (filter = () => true) => [['', '—'], ...S.duiven.filter(filter).map(d => [d.id, d.ring + (d.naam ? ' · ' + d.naam : '')])];
 
 // ---------- schermen ----------
+// Weer-code (WMO) naar tekst en icoon
+function weerCode(c) {
+  if (c == null) return ['', '🌡'];
+  if (c >= 95) return ['Onweer', '⛈'];
+  if (c >= 85) return ['Sneeuwbuien', '🌨'];
+  if (c >= 80) return ['Buien', '🌦'];
+  if (c >= 71) return ['Sneeuw', '❄️'];
+  if (c >= 61) return ['Regen', '🌧'];
+  if (c >= 51) return ['Motregen', '🌦'];
+  if (c >= 45) return ['Mist', '🌫'];
+  if (c === 3) return ['Bewolkt', '☁️'];
+  if (c >= 1) return ['Half bewolkt', '⛅'];
+  return [new Date().getHours() >= 18 || new Date().getHours() < 7 ? 'Helder' : 'Zonnig', new Date().getHours() >= 18 || new Date().getHours() < 7 ? '🌙' : '☀️'];
+}
+function heroHtml() {
+  const u = new Date().getHours();
+  const groet = u < 6 ? 'Goedenacht' : u < 12 ? 'Goedemorgen' : u < 18 ? 'Goedemiddag' : 'Goedenavond';
+  const datum = vandaag().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
+  const w = S.weer, H = w?.uur;
+  let nu = null;
+  if (H) { const key = `${VANDAAG()}T${String(u).padStart(2, '0')}:00`; const i = H.time.indexOf(key); if (i >= 0) nu = { t: H.temperature_2m[i], wind: H.wind_speed_10m[i], van: H.wind_direction_10m[i], code: H.weather_code[i], regen: H.precipitation[i] }; }
+  const [cond, ico] = weerCode(nu?.code);
+  const ad = africhtAdvies(0), mo = africhtAdvies(1), kp = kpVoor(VANDAAG());
+  const kleur = !ad ? 'var(--grijs)' : ad.oordeel === 'slecht' ? 'var(--rood)' : ad.oordeel === 'twijfel' ? 'var(--oranje)' : 'var(--accent)';
+  const p = !ad ? 0 : ad.oordeel === 'slecht' ? 25 : ad.oordeel === 'twijfel' ? 60 : 100;
+  return `<div class="kaart hero">
+    <div class="groet">${groet}${S.inst.naam && !S.demo ? ', ' + esc(S.inst.naam) : ''}</div>
+    <div class="datum">${datum}</div>
+    <div class="rij2">
+      <div class="temp">${nu ? Math.round(nu.t) + '°' : w ? Math.round(w.min[0]) + '°' : '–'}</div>
+      <div class="cond"><b>${ico} ${cond || 'Weer'}</b><small>${w ? `Vannacht ${Math.round(w.min[0])}° · morgen ${Math.round(w.min[1])}° / ${Math.round(w.max[1])}°` : navigator.onLine ? 'Weer wordt geladen…' : 'Geen internet'}<br>${esc(S.inst.plaats || '')}</small></div>
+      ${ad ? `<a class="status-ring" href="#/training" style="--kleur:${kleur};--p:${p}%;text-decoration:none" title="${esc(ad.titel)}">${ad.oordeel === 'slecht' ? '🏠' : ad.oordeel === 'twijfel' ? '⚠️' : '🕊'}</a>` : ''}
+    </div>
+    <div class="chips">
+      ${nu ? `<span class="chip">💨 ${Math.round(nu.wind)} km/u <small>${richtingNaam(nu.van)}</small></span>` : ''}
+      ${nu ? `<span class="chip">💧 ${nu.regen.toFixed(1)} mm</span>` : ''}
+      ${kp != null ? `<span class="chip">🧲 Kp ${kp.toFixed(0)} <small>${kp >= 5 ? 'storm' : kp >= 4 ? 'verhoogd' : 'rustig'}</small></span>` : ''}
+      ${S.inst.vorstTest ? '<span class="chip">❄ vorsttest</span>' : ''}
+    </div>
+    ${ad ? `<a class="advies ${ad.oordeel}" href="#/training" style="text-decoration:none;color:inherit"><div style="flex:1"><b>${ad.titel}</b><small>${esc(ad.uitleg)}${mo ? `<br>Morgen: ${mo.titel.toLowerCase()}` : ''}</small></div><span style="color:var(--grijs)">›</span></a>` : ''}
+  </div>`;
+}
 function vVandaag() {
   const m = meldingen();
   const w = S.weer;
@@ -644,10 +693,8 @@ function vVandaag() {
   }
   return ['Vandaag', `
     ${S.demo ? `<div class="kaart melding blauw"><div class="ico">👋</div><div><b>Je kijkt naar voorbeeldgegevens</b><small>Kanon, Dirkje en de rest zijn om mee te oefenen. Klaar? Begin met je eigen hok.</small><div class="knoppen"><button class="knop" onclick="startEigenHok()">Start met mijn eigen hok</button></div></div></div>` : ''}
-    <div style="margin:2px 4px 10px"><b style="font-size:20px;text-transform:capitalize">${datum}</b><br><small style="color:var(--grijs)">${weer}</small></div>
+    ${heroHtml()}
     ${m.length ? m.map(x => `<a class="kaart melding ${x.kl}" href="${x.href}" style="text-decoration:none;color:inherit"><div class="ico">${x.ico}</div><div><b>${esc(x.titel)}</b><small>${esc(x.sub)}</small></div></a>`).join('') : '<div class="kaart leeg">Niets dringends vandaag 👍</div>'}
-    ${(() => { const ad = africhtAdvies(0); if (!ad) return ''; const mo = africhtAdvies(1);
-      return `<a class="kaart melding ${ad.oordeel === 'slecht' ? 'rood' : ad.oordeel === 'twijfel' ? 'oranje' : ''}" href="#/training" style="text-decoration:none;color:inherit"><div class="ico">${ad.oordeel === 'slecht' ? '🏠' : ad.oordeel === 'twijfel' ? '⚠' : '🕊'}</div><div><b>Vandaag: ${ad.titel}</b><small>${esc(ad.uitleg)}${mo ? `<br>Morgen: ${mo.titel.toLowerCase()} – ${esc(mo.uitleg)}` : ''}</small></div></a>`; })()}
     <div class="sectie">Dagtaken</div>
     <div class="kaart" style="display:flex;gap:8px;flex-wrap:wrap">${Object.entries(DAGTAKEN).map(([k, v]) => { const g = vandaagGedaan(k); return `<button class="knop ${g ? '' : 'licht'}" style="flex:1;min-width:30%;padding:10px 6px;font-size:15px" ${g ? 'disabled' : `onclick="wijzig(()=>doeTaak('${k}'),'${v.slice(3)} – afgevinkt')"`}>${v}<br><small style="font-weight:400">${g ? '✔ ' + g.tijd : 'nog doen'}</small></button>`; }).join('')}</div>
     ${top}
@@ -1058,6 +1105,9 @@ function vInstellingen() {
       <p style="margin:0 0 4px"><b>${esc(S.inst.naam || 'Mijn hok')}</b></p>
       <small style="color:var(--grijs)">Hokken: ${hokLijst().map(esc).join(', ')} · ${S.nestbakken.length} nestbakken · ${S.duiven.length} duiven</small>
       <div class="knoppen"><button class="knop licht" onclick="hokInstellen()">Wijzigen</button><button class="knop licht" onclick="bulkDuiven()">＋ Duiven in één keer</button></div>`}</div>
+    <div class="kaart"><h2>Uiterlijk</h2>
+      <div class="filters" style="margin:0">${[['auto', '🌓 Automatisch'], ['donker', '🌙 Donker'], ['licht', '☀️ Licht']].map(([k, t]) => `<button class="${(S.inst.thema || 'auto') === k ? 'aan' : ''}" onclick="S.inst.thema='${k}';bewaar();pasThemaToe();render()">${t}</button>`).join('')}</div>
+      <small style="color:var(--grijs)">Licht leest het best in de felle zon, donker in de avond en in het hok.</small></div>
     <div class="kaart"><h2>Locatie voor vorstmelding</h2>
       <p style="margin:0 0 8px">${esc(S.inst.plaats)} (${S.inst.lat.toFixed(2)}, ${S.inst.lon.toFixed(2)})</p>
       ${w ? `<table><tr><th>Dag</th><th class="n">Min</th><th class="n">Max</th></tr>${w.dagen.map((d, i) => `<tr><td>${fmtD(d)}</td><td class="n" style="${w.min[i] <= 0 ? 'color:var(--rood);font-weight:700' : ''}">${w.min[i].toFixed(1)} °C</td><td class="n">${w.max[i].toFixed(1)} °C</td></tr>`).join('')}</table>` : '<p class="leeg">Nog geen weer geladen</p>'}
@@ -1848,7 +1898,7 @@ function luister() {
   stopLuister();
   rec = new SR(); rec.lang = 'nl-NL'; rec.interimResults = true;
   $('#mic').classList.add('luistert');
-  $('#uitleg').innerHTML = '<p style="color:var(--grijs)">Ik luister…</p>';
+  $('#uitleg').innerHTML = '<div class="golf"><i></i><i></i><i></i><i></i><i></i></div><p style="color:var(--grijs);text-align:center;margin:0">Ik luister…</p>';
   let definitief = '';
   rec.onresult = e => {
     let tussen = ''; definitief = '';
@@ -1938,12 +1988,18 @@ function render() {
   const tab = TAB[naam] || 'meer';
   document.querySelectorAll('#tabs a').forEach(a => a.classList.toggle('actief', a.dataset.tab === tab));
   $('#back').hidden = ['vandaag', 'duiven', 'vluchten', 'meer'].includes(naam);
-  if (location.hash !== vorigeRoute) { window.scrollTo(0, 0); vorigeRoute = location.hash; }
+  if (location.hash !== vorigeRoute) {
+    window.scrollTo(0, 0); vorigeRoute = location.hash;
+    const v = $('#view'); v.classList.remove('anim'); void v.offsetWidth; v.classList.add('anim');
+  }
 }
 $('#back').onclick = () => history.length > 1 ? history.back() : (location.hash = '#/vandaag');
 window.addEventListener('hashchange', render);
 window.addEventListener('online', () => { haalWeer(true); haalKp(true); weerVoorVluchten(); });
 
+pasThemaToe();
+// korte trilling bij tikken (Android); voelt als een echte knop
+document.addEventListener('click', e => { if (e.target.closest('.knop, .icon-btn, nav a, .tegel, .filters button, #mic, .status-ring')) navigator.vibrate?.(8); }, true);
 render();
 haalWeer().then(() => weerVoorVluchten());
 haalKp();

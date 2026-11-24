@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="nl">
+<html lang="nl" data-thema="donker">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#1f4e3d">
+  <meta name="theme-color" content="#05080c">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>DuivenApp</title>
@@ -13,21 +13,30 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div id="aurora" aria-hidden="true"></div>
+
   <header id="top">
-    <button id="back" class="icon-btn" hidden aria-label="Terug">‹</button>
+    <button id="back" class="icon-btn" hidden aria-label="Terug">
+      <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
     <h1 id="title">Vandaag</h1>
-    <button id="scan-btn" class="icon-btn" aria-label="QR scannen">⌗</button>
+    <button id="scan-btn" class="icon-btn" aria-label="QR scannen">
+      <svg viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10"/></svg>
+    </button>
   </header>
 
   <main id="view"></main>
 
-  <button id="mic" aria-label="Inspreken">🎤</button>
+  <button id="mic" aria-label="Inspreken">
+    <span class="orb"></span>
+    <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
+  </button>
 
   <nav id="tabs">
-    <a href="#/vandaag" data-tab="vandaag"><span>☀</span>Vandaag</a>
-    <a href="#/duiven" data-tab="duiven"><span>🕊</span>Duiven</a>
-    <a href="#/vluchten" data-tab="vluchten"><span>⏱</span>Vluchten</a>
-    <a href="#/meer" data-tab="meer"><span>☰</span>Meer</a>
+    <a href="#/vandaag" data-tab="vandaag"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>Vandaag</a>
+    <a href="#/duiven" data-tab="duiven"><svg viewBox="0 0 24 24"><path d="M3 15c3.5-7 9-10 15-9 1.7.3 2.6 1.3 3 2.5l-3 .6c-1.3 4-5 7.4-10.5 7.9l2.3-3C7 14.6 5 15 3 15z"/><circle cx="17.6" cy="8.4" r=".6"/></svg>Duiven</a>
+    <a href="#/vluchten" data-tab="vluchten"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/></svg>Vluchten</a>
+    <a href="#/meer" data-tab="meer"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/></svg>Meer</a>
   </nav>
 
   <dialog id="dlg"><div id="dlg-body"></div></dialog>
