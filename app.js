@@ -28,6 +28,7 @@ function ringHtml(r) {
   return `<span class="ring">${esc(r.slice(0, -4))}<span class="eind">${esc(eind)}</span></span>`;
 }
 const duif = id => S.duiven.find(d => d.id === id);
+const hokLijst = () => (S.inst?.hokken?.length ? S.inst.hokken : ['Hok 1', 'Hok 2', 'Kweekhok', 'Jongen']);
 const kortRing = id => duif(id)?.ring.slice(-4) || '?';
 const duifNaam = id => { const d = duif(id); return d ? d.ring + (d.naam ? ' · ' + d.naam : '') : '—'; };
 
@@ -93,6 +94,7 @@ function demo() {
 
   return {
     versie: 4,
+    demo: true,
     duiven, vluchten, kosten,
     nestbakken: [
       { nr: 1, vader: 'd11', moeder: 'd12', legdatum: plus(-16), eieren: 2, uitgekomen: '', jongen: 0, geringd: false },
@@ -129,7 +131,14 @@ function demo() {
 
 let S;
 try { S = JSON.parse(localStorage.getItem(KEY)); } catch { S = null; }
-if (!S || S.versie !== 4) S = demo();
+if (!S || !Array.isArray(S.duiven)) S = demo();
+// Bij een nieuwe versie worden ontbrekende onderdelen aangevuld; bestaande gegevens blijven altijd staan.
+S.versie = 4;
+S.demo ??= S.duiven.some(d => d.id === 'd11');
+S.inst ??= { plaats: 'Mijn hok', lat: 52.09, lon: 5.12, vorstTest: false };
+for (const k of ['duiven', 'vluchten', 'kosten', 'nestbakken', 'vaccinaties', 'kuren', 'trainingen', 'afspraken']) S[k] ??= [];
+S.voer ??= { voorraad: 0, perDag: 0, levertijd: 3, prijsPerKg: 0 };
+S.producten ??= {};
 const bewaar = () => localStorage.setItem(KEY, JSON.stringify(S));
 S.ringen ??= { voorraad: 12, minimum: 10 };
 S.ringen.volgende ??= `NL-${new Date().getFullYear()}-`;
@@ -255,6 +264,8 @@ function meldingen() {
   if (S.ringen.voorraad <= S.ringen.minimum || S.ringen.voorraad < nodig)
     add(S.ringen.voorraad < nodig ? 'rood' : 'oranje', '💍', `Nog ${S.ringen.voorraad} ringen – bijbestellen`, `${nodig} nodig voor eieren en jongen in de bakken. Bestel bij je bond/afdeling.`, '#/kweek');
   // eruit
+  if (!S.demo && S.duiven.length && (!S.laatsteBackup || dagenTot(S.laatsteBackup) <= -14))
+    add('oranje', '💾', S.laatsteBackup ? `Laatste back-up ${wanneer(dagenTot(S.laatsteBackup))}` : 'Nog nooit een back-up gemaakt', 'Je gegevens staan alleen op dit toestel. Maak een back-up en bewaar of deel hem.', '#/instellingen');
   const ev = eruitVoorstellen();
   if (ev.length) add('', '✂', `${ev.length} duif/duiven om naar te kijken`, 'Voorstellen op basis van slechte resultaten.', '#/eruit');
   return m;
@@ -308,7 +319,8 @@ function wijzig(fn, melding) {
 function formulier(titel, velden, opslaan) {
   const veld = v => {
     if (v.opties) return `<select name="${v.naam}">${v.opties.map(o => { const [w, t] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(w)}" ${w == v.waarde ? 'selected' : ''}>${esc(t)}</option>`; }).join('')}</select>`;
-    return `<input name="${v.naam}" type="${v.type || 'text'}" value="${esc(v.waarde ?? '')}" ${v.type === 'number' ? 'step="any" inputmode="decimal"' : ''} ${v.type === 'time' ? 'step="1"' : ''}>`;
+    // getallen als tekstveld met cijfertoetsenbord, zodat ook een komma (3,5) werkt
+    return `<input name="${v.naam}" type="${v.type === 'number' ? 'text' : v.type || 'text'}" value="${esc(v.waarde ?? '')}" ${v.type === 'number' ? 'inputmode="decimal" autocomplete="off"' : ''} ${v.type === 'time' ? 'step="1"' : ''}>`;
   };
   dialoog(`<h3>${esc(titel)}</h3><form id="frm">${velden.map(v => `<label>${esc(v.label)}</label>${veld(v)}`).join('')}
     <div class="knoppen"><button type="button" class="knop licht" onclick="sluit()">Annuleren</button><button class="knop">Opslaan</button></div></form>`);
@@ -337,6 +349,7 @@ function vVandaag() {
       <a class="knop licht vol" href="#/vlucht/${laatste.id}">Hele uitslag</a></div>`;
   }
   return ['Vandaag', `
+    ${S.demo ? `<div class="kaart melding blauw"><div class="ico">👋</div><div><b>Je kijkt naar voorbeeldgegevens</b><small>Kanon, Dirkje en de rest zijn om mee te oefenen. Klaar? Begin met je eigen hok.</small><div class="knoppen"><button class="knop" onclick="startEigenHok()">Start met mijn eigen hok</button></div></div></div>` : ''}
     <div style="margin:2px 4px 10px"><b style="font-size:20px;text-transform:capitalize">${datum}</b><br><small style="color:var(--grijs)">${weer}</small></div>
     ${m.length ? m.map(x => `<a class="kaart melding ${x.kl}" href="${x.href}" style="text-decoration:none;color:inherit"><div class="ico">${x.ico}</div><div><b>${esc(x.titel)}</b><small>${esc(x.sub)}</small></div></a>`).join('') : '<div class="kaart leeg">Niets dringends vandaag 👍</div>'}
     <div class="sectie">Dagtaken</div>
@@ -356,7 +369,7 @@ function vDuiven() {
     <div class="zoek"><input id="zoek" type="search" inputmode="numeric" placeholder="Zoek op laatste cijfers van de ring…" value="${esc(zoekTerm)}">
     <div class="filters">${[['alle', 'Alle'], ...Object.entries(STATUS).map(([k, v]) => [k, v[0]])].map(([k, t]) => `<button class="${duivenFilter === k ? 'aan' : ''}" onclick="duivenFilter='${k}';render()">${t}</button>`).join('')}</div></div>
     <div class="kaart" id="lijst"></div>
-    <button class="knop vol" onclick="nieuweDuif()">＋ Nieuwe duif</button>`, () => {
+    <div class="knoppen"><button class="knop" onclick="nieuweDuif()">＋ Nieuwe duif</button><button class="knop licht" onclick="bulkDuiven()">＋ Meerdere tegelijk</button></div>`, () => {
     const vul = () => {
       const z = cijfers(zoekTerm);
       const l = S.duiven.filter(d => (duivenFilter === 'alle' || d.status === duivenFilter) && (!z || cijfers(d.ring).includes(z) || d.naam.toLowerCase().includes(zoekTerm.toLowerCase())));
@@ -416,7 +429,7 @@ function duifVelden(d = {}) {
     { naam: 'naam', label: 'Naam (optioneel)', waarde: d.naam },
     { naam: 'geslacht', label: 'Geslacht', waarde: d.geslacht || 'D', opties: [['D', 'Doffer'], ['V', 'Duivin']] },
     { naam: 'kleur', label: 'Kleur', waarde: d.kleur },
-    { naam: 'hok', label: 'Hok', waarde: d.hok || 'Hok 1', opties: ['Hok 1', 'Hok 2', 'Kweekhok', 'Jongen'] },
+    { naam: 'hok', label: 'Hok', waarde: d.hok || hokLijst()[0], opties: [...new Set([...hokLijst(), ...(d.hok ? [d.hok] : [])])] },
     { naam: 'status', label: 'Status', waarde: d.status || 'vlieg', opties: Object.entries(STATUS).map(([k, v]) => [k, v[0]]) },
     { naam: 'vader', label: 'Vader', waarde: d.vader, opties: duifOpties(x => x.geslacht === 'D' && x.id !== d.id) },
     { naam: 'moeder', label: 'Moeder', waarde: d.moeder, opties: duifOpties(x => x.geslacht === 'V' && x.id !== d.id) },
@@ -625,7 +638,7 @@ function nieuweVaccin() {
 function nieuweKuur(hok, naam = '', dagen = 5) {
   formulier('Kuur starten', [
     { naam: 'naam', label: 'Middel / tegen', waarde: naam },
-    { naam: 'hok', label: 'Hok', waarde: hok || 'Alle hokken', opties: ['Alle hokken', 'Hok 1', 'Hok 2', 'Kweekhok', 'Jongen'] },
+    { naam: 'hok', label: 'Hok', waarde: hok || 'Alle hokken', opties: ['Alle hokken', ...hokLijst()] },
     { naam: 'start', label: 'Start', type: 'date', waarde: VANDAAG() },
     { naam: 'dagen', label: 'Aantal dagen', type: 'number', waarde: dagen },
     { naam: 'wachttijd', label: 'Wachttijd voor de vlucht (dagen)', type: 'number', waarde: 2 },
@@ -725,6 +738,11 @@ function vInstellingen() {
   const w = S.weer;
   const perm = 'Notification' in window ? Notification.permission : 'niet ondersteund';
   return ['Instellingen', `
+    <div class="kaart"><h2>Mijn hok</h2>
+      ${S.demo ? '<p style="margin:0 0 8px">Je gebruikt nu voorbeeldgegevens.</p><button class="knop vol" onclick="startEigenHok()">Start met mijn eigen hok</button>' : `
+      <p style="margin:0 0 4px"><b>${esc(S.inst.naam || 'Mijn hok')}</b></p>
+      <small style="color:var(--grijs)">Hokken: ${hokLijst().map(esc).join(', ')} · ${S.nestbakken.length} nestbakken · ${S.duiven.length} duiven</small>
+      <div class="knoppen"><button class="knop licht" onclick="hokInstellen()">Wijzigen</button><button class="knop licht" onclick="bulkDuiven()">＋ Duiven in één keer</button></div>`}</div>
     <div class="kaart"><h2>Locatie voor vorstmelding</h2>
       <p style="margin:0 0 8px">${esc(S.inst.plaats)} (${S.inst.lat.toFixed(2)}, ${S.inst.lon.toFixed(2)})</p>
       ${w ? `<table><tr><th>Dag</th><th class="n">Min</th><th class="n">Max</th></tr>${w.dagen.map((d, i) => `<tr><td>${fmtD(d)}</td><td class="n" style="${w.min[i] <= 0 ? 'color:var(--rood);font-weight:700' : ''}">${w.min[i].toFixed(1)} °C</td><td class="n">${w.max[i].toFixed(1)} °C</td></tr>`).join('')}</table>` : '<p class="leeg">Nog geen weer geladen</p>'}
@@ -732,8 +750,13 @@ function vInstellingen() {
     <div class="kaart"><h2>Meldingen</h2><p style="margin:0">Status: <b>${perm === 'granted' ? 'aan' : perm === 'denied' ? 'geblokkeerd' : perm}</b></p>
       <div class="knoppen"><button class="knop" onclick="meldingenAan()">Meldingen aanzetten</button><button class="knop licht" onclick="wijzig(()=>S.inst.vorstTest=!S.inst.vorstTest,S.inst.vorstTest?'Vorsttest uit':'Vorsttest aan');vorstPush()">${S.inst.vorstTest ? 'Vorsttest uitzetten' : 'Vorst testen'}</button></div>
       <small style="color:var(--grijs)">iPhone: meldingen werken alleen als de app op het beginscherm staat.</small></div>
-    <div class="kaart"><h2>Gegevens</h2><p style="margin:0 0 8px;color:var(--grijs)">Alles staat nu alleen op dit apparaat. In de echte versie komt er een online back-up.</p>
-      <div class="knoppen"><button class="knop licht" onclick="exporteer()">Back-up downloaden</button><button class="knop rood" onclick="if(confirm('Alle gegevens vervangen door de voorbeeldgegevens?')){S=demo();bewaar();render();toast('Voorbeeldgegevens hersteld')}">Voorbeeld herstellen</button></div></div>`];
+    <div class="kaart"><h2>Back-up</h2><p style="margin:0 0 8px;color:var(--grijs)">Je gegevens staan alleen op dit toestel. Maak regelmatig een back-up en bewaar die ergens anders (mail, WhatsApp naar jezelf, Google Drive). Met dezelfde back-up zet je alles over naar je computer of een nieuwe telefoon.</p>
+      <p style="margin:0 0 8px">Laatste back-up: <b>${S.laatsteBackup ? fmtDJ(S.laatsteBackup) + ' (' + wanneer(dagenTot(S.laatsteBackup)) + ')' : 'nog nooit'}</b></p>
+      <div class="knoppen">${navigator.canShare ? '<button class="knop" onclick="exporteer(true)">📤 Back-up delen</button>' : ''}<button class="knop ${navigator.canShare ? 'licht' : ''}" onclick="exporteer()">💾 Back-up opslaan</button></div>
+      <button class="knop licht vol" style="margin-top:8px" onclick="$('#backupbestand').click()">📥 Back-up terugzetten</button>
+      <input type="file" id="backupbestand" accept=".json,application/json" hidden onchange="importeer(this.files[0]);this.value=''"></div>
+    <div class="kaart"><h2>Voorbeeldgegevens</h2><p style="margin:0 0 8px;color:var(--grijs)">Om te oefenen of de app te laten zien.</p>
+      <button class="knop rood" onclick="if(confirm('Alle gegevens op dit toestel vervangen door de voorbeeldgegevens? Maak eerst een back-up als je je eigen gegevens wilt houden.')){S=demo();bewaar();location.reload()}">Voorbeeldgegevens laden</button></div>`];
 }
 function mijnLocatie() {
   if (!navigator.geolocation) return toast('Locatie niet beschikbaar');
@@ -745,10 +768,129 @@ async function meldingenAan() {
   if (!('Notification' in window)) return toast('Deze browser ondersteunt geen meldingen');
   await Notification.requestPermission(); render(); vorstPush();
 }
-function exporteer() {
+async function exporteer(delen) {
+  S.laatsteBackup = VANDAAG(); bewaar();
+  const naam = `duivenapp-backup-${VANDAAG()}.json`;
+  const blob = new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' });
+  if (delen && navigator.canShare) {
+    const file = new File([blob], naam, { type: 'application/json' });
+    if (navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: 'DuivenApp back-up' }); render(); return; } catch (e) { if (e.name === 'AbortError') return; }
+    }
+  }
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' }));
-  a.download = `duivenapp-backup-${VANDAAG()}.json`; a.click();
+  a.href = URL.createObjectURL(blob); a.download = naam; a.click();
+  render(); toast('Back-up opgeslagen: ' + naam);
+}
+async function importeer(bestand) {
+  if (!bestand) return;
+  let x;
+  try { x = JSON.parse(await bestand.text()); } catch { return toast('Dit is geen geldig back-upbestand'); }
+  if (!x || !Array.isArray(x.duiven) || !x.inst) return toast('Dit is geen DuivenApp-back-up');
+  const wanneerGemaakt = x.laatsteBackup ? ` van ${fmtDJ(x.laatsteBackup)}` : '';
+  if (!confirm(`Back-up${wanneerGemaakt} terugzetten met ${x.duiven.length} duiven en ${x.vluchten?.length || 0} vluchten?\n\nAlles wat nu op dit toestel staat, wordt vervangen.`)) return;
+  localStorage.setItem(KEY, JSON.stringify(x));
+  location.hash = '#/vandaag'; location.reload();
+}
+
+// ---------- eigen hok ----------
+function startEigenHok() {
+  if (S.demo === false && S.duiven.length && !confirm('Je hebt al eigen gegevens. Opnieuw beginnen wist alles. Doorgaan?')) return;
+  formulier('Start met mijn eigen hok', [
+    { naam: 'naam', label: 'Naam van je hok / hokgemeenschap', waarde: '' },
+    { naam: 'hokken', label: 'Je hokken (gescheiden door komma\'s)', waarde: 'Hok 1, Hok 2, Kweekhok, Jongen' },
+    { naam: 'bakken', label: 'Aantal nestbakken', type: 'number', waarde: 12 },
+    { naam: 'volgende', label: 'Eerstvolgende ringnummer (van je ringenreeks)', waarde: `NL-${new Date().getFullYear()}-` },
+    { naam: 'ringen', label: 'Ringen op voorraad', type: 'number', waarde: 0 },
+    { naam: 'voer', label: 'Voer op voorraad (kg)', type: 'number', waarde: 0 },
+    { naam: 'perDag', label: 'Voerverbruik per dag (kg, alle duiven samen)', type: 'number', waarde: 0 },
+    { naam: 'levertijd', label: 'Levertijd voer (dagen)', type: 'number', waarde: 3 },
+  ], f => {
+    const oud = S;
+    S = {
+      versie: 4, demo: false,
+      duiven: [], vluchten: [], kosten: [], vaccinaties: [], kuren: [], trainingen: [], afspraken: [], producten: {},
+      nestbakken: Array.from({ length: Math.max(0, Math.min(200, Math.round(f.bakken))) }, (_, i) => ({ nr: i + 1, vader: '', moeder: '', legdatum: '', eieren: 0, uitgekomen: '', jongen: 0, geringd: false })),
+      voer: { voorraad: f.voer, perDag: f.perDag, levertijd: f.levertijd || 3, prijsPerKg: 0 },
+      ringen: { voorraad: Math.round(f.ringen), minimum: 10, volgende: f.volgende.trim().toUpperCase(), laatste: [] },
+      inst: { naam: f.naam.trim() || 'Mijn hok', plaats: 'Mijn hok', lat: oud.inst.lat, lon: oud.inst.lon, vorstTest: false, hokken: f.hokken.split(',').map(h => h.trim()).filter(Boolean) },
+      weer: null, woorden: [], snel: oud.snel.filter(x => x.actie !== 'zin'), commandos: oud.commandos || {}, logboek: [],
+    };
+    setTimeout(() => { location.hash = '#/instellingen'; toast('Je eigen hok staat klaar. Zet nu je locatie en voeg je duiven toe.'); });
+  });
+}
+function hokInstellen() {
+  formulier('Mijn hok', [
+    { naam: 'naam', label: 'Naam van je hok', waarde: S.inst.naam || '' },
+    { naam: 'hokken', label: 'Hokken (gescheiden door komma\'s)', waarde: hokLijst().join(', ') },
+    { naam: 'bakken', label: 'Aantal nestbakken', type: 'number', waarde: S.nestbakken.length },
+  ], f => {
+    S.inst.naam = f.naam.trim(); S.inst.hokken = f.hokken.split(',').map(h => h.trim()).filter(Boolean);
+    const n = Math.max(0, Math.min(200, Math.round(f.bakken)));
+    while (S.nestbakken.length < n) S.nestbakken.push({ nr: S.nestbakken.length + 1, vader: '', moeder: '', legdatum: '', eieren: 0, uitgekomen: '', jongen: 0, geringd: false });
+    // alleen lege bakken achteraan weghalen
+    while (S.nestbakken.length > n) { const b = S.nestbakken.at(-1); if (b.vader || b.moeder || b.eieren || b.uitgekomen) break; S.nestbakken.pop(); }
+  });
+}
+
+// ---------- duiven in één keer ----------
+const KLEUREN = ['blauwgebandeerd', 'donkerkras', 'lichtkras', 'kras', 'blauw', 'rood', 'roodkras', 'schimmel', 'vaal', 'zwart', 'wit', 'geschelpt', 'gekrast', 'lichtgeschelpt'];
+function leesRegel(r) {
+  const delen = (/[\t;|]/.test(r) ? r.split(/[\t;|]/) : r.split(',')).map(x => x.trim()).filter(Boolean);
+  if (!delen.length) return null;
+  let ringRuw = delen.shift().toUpperCase().replace(/\s+/g, ' ');
+  // alleen cijfers met jaartal ervoor: "20251190001"
+  const los = ringRuw.match(/^((?:19|20)\d{9,10})\b\s*(.*)$/);
+  if (los) { ringRuw = los[1]; if (los[2]) delen.unshift(...los[2].split(' ')); }
+  // "NL 2024 1234567 D blauw" in één veld: extra woorden afsplitsen
+  const m0 = ringRuw.match(/^([A-Z]{2,3}[\s\-\/]*)?((?:\d{2}|\d{4})[\s\-\/]+)?\d{3,8}/);
+  if (!los && m0 && m0[0].length < ringRuw.length) { delen.unshift(...ringRuw.slice(m0[0].length).trim().split(' ')); ringRuw = m0[0]; }
+  let m = ringRuw.match(/^([A-Z]{2,3})?[\s\-\/]*(?:(\d{4}|\d{2})[\s\-\/]+)?(\d{3,8})$/);
+  if (/^(19|20)\d{9,10}$/.test(ringRuw)) m = [ringRuw, '', ringRuw.slice(0, 4), ringRuw.slice(4)];
+  if (!m) return { fout: `Ringnummer niet herkend: “${r.trim()}”` };
+  const land = m[1] || 'NL', jaar = !m[2] ? String(new Date().getFullYear()) : m[2].length === 2 ? '20' + m[2] : m[2];
+  const d = { ring: `${land}-${jaar}-${m[3]}`, geslacht: '', kleur: '', naam: '' };
+  for (const w of delen) {
+    const l = w.toLowerCase();
+    if (!d.geslacht && /^(d|doffer|m|man|♂|mannetje)$/.test(l)) d.geslacht = 'D';
+    else if (!d.geslacht && /^(v|duivin|w|vrouw|pop|♀|vrouwtje)$/.test(l)) d.geslacht = 'V';
+    else if (!d.kleur && KLEUREN.some(k => l.replace(/\s/g, '') === k || l.startsWith(k))) d.kleur = w[0].toUpperCase() + w.slice(1).toLowerCase();
+    else if (!d.naam && !/^\d+$/.test(w)) d.naam = w;
+  }
+  return d;
+}
+function bulkDuiven() {
+  dialoog(`<h3>Duiven in één keer toevoegen</h3>
+    <p style="color:var(--grijs);margin-top:0;font-size:15px">Eén duif per regel. Plak uit Excel of je oude programma, of typ/spreek in. Alleen het ringnummer is nodig; geslacht (D/V), kleur en naam mogen erachter.<br><small>Bijv. “NL-2024-1234567 D blauw Kanon” · “24 1234568 V” · “BE 2023 6012345”</small></p>
+    <textarea id="bulk" rows="7" placeholder="NL-2024-1234567 D blauw&#10;NL-2024-1234568 V kras"></textarea>
+    <div class="grid2"><div><label>Status</label><select id="bulkstatus">${Object.entries(STATUS).filter(([k]) => !['weg', 'verkocht'].includes(k)).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join('')}</select></div>
+    <div><label>Hok</label><select id="bulkhok">${hokLijst().map(h => `<option>${esc(h)}</option>`).join('')}</select></div></div>
+    <div id="bulkvoorbeeld"></div>
+    <div class="knoppen"><button class="knop licht" onclick="sluit()">Annuleren</button><button class="knop" id="bulkok" disabled>Toevoegen</button></div>`);
+  let goed = [];
+  const lees = () => {
+    const bestaand = new Set(S.duiven.map(d => cijfers(d.ring)));
+    const gezien = new Set(); goed = []; const rijen = [];
+    for (const r of $('#bulk').value.split('\n')) {
+      if (!r.trim() || /ring/i.test(r) && !/\d{3}/.test(r)) continue; // lege regels en kopregels overslaan
+      const d = leesRegel(r);
+      if (!d) continue;
+      if (d.fout) { rijen.push(`<div style="color:var(--rood)">✖ ${esc(d.fout)}</div>`); continue; }
+      const c = cijfers(d.ring);
+      if (bestaand.has(c) || gezien.has(c)) { rijen.push(`<div style="color:var(--grijs)">↷ ${esc(d.ring)} staat er al</div>`); continue; }
+      gezien.add(c); goed.push(d);
+      rijen.push(`<div>✔ ${ringHtml(d.ring)} <small>${d.geslacht === 'D' ? '♂' : d.geslacht === 'V' ? '♀' : '?'} ${esc(d.kleur)} ${esc(d.naam)}</small></div>`);
+    }
+    $('#bulkvoorbeeld').innerHTML = rijen.length ? `<div class="kaart" style="max-height:220px;overflow:auto;margin-top:8px;font-size:15px">${rijen.join('')}</div>` : '';
+    $('#bulkok').disabled = !goed.length;
+    $('#bulkok').textContent = goed.length ? `${goed.length} duiven toevoegen` : 'Toevoegen';
+  };
+  $('#bulk').oninput = lees;
+  $('#bulkok').onclick = () => {
+    const status = $('#bulkstatus').value, hok = $('#bulkhok').value, l = goed;
+    sluit();
+    wijzig(() => l.forEach(d => S.duiven.push({ id: uid(), ring: d.ring, naam: d.naam, geslacht: d.geslacht || 'D', kleur: d.kleur, status, hok, vader: '', moeder: '', notitie: d.geslacht ? '' : 'Geslacht nog controleren', prijs: 0 })), `${l.length} duiven toegevoegd`);
+  };
 }
 
 // ---------- spraak-assistent ----------
