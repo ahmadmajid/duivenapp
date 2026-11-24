@@ -148,6 +148,7 @@ S.snel ??= [
   { id: uid(), zeg: 'tricho kuur', actie: 'zin', zin: 'kuur tricho alle hokken 5 dagen' },
 ];
 S.logboek ??= [];
+S.commandos ??= {}; // eigen commandowoorden per handeling (anders de standaard)
 bewaar();
 
 // ---------- berekeningen ----------
@@ -516,6 +517,7 @@ function vMeer() {
     ${t('#/verkoop', '🏷', 'Verkoop', `${S.duiven.filter(d => d.status === 'verkoop').length} te koop`)}
     ${t('#/eruit', '✂', 'Eruit', `${eruitVoorstellen().length} voorstellen`)}
     ${t('#/hok/Hok 1', '🏠', 'Hokken', 'Per hok bekijken')}
+    ${t('#/commandos', '🎙', 'Commando\u2019s', 'Vaste spraakwoorden')}
     ${t('#/woorden', '🗣', 'Mijn woorden', `${S.snel.length} snelopdrachten`)}
     ${t('#/instellingen', '⚙', 'Instellingen', 'Locatie, meldingen')}
   </div>`];
@@ -807,6 +809,18 @@ function begrijp(ruw, keuzes = {}, diepte = 0) {
   let t = normaliseer(ruw);
   if (!t) return { fout: 'Ik heb niets gehoord.' };
 
+  // commando: vast woord + gegevens in vaste volgorde ("binnen 1234 14 32")
+  if (diepte < 3) {
+    const c = commandoZin(t);
+    if (c) {
+      const r = begrijp(c.zin, keuzes, 9); // 9 = geen commando's/snelopdrachten opnieuw
+      if (r.fout) return { fout: `Commando “${c.woord}”: ${r.fout} Zeg: ${c.woord} ${c.cmd.vorm}`, suggesties: [] };
+      const label = `<small style="color:var(--grijs)">Commando <b>${esc(c.woord)}</b></small><br>`;
+      if (r.wat) r.wat = label + r.wat;
+      if (r.antwoord) { r.antwoord = label + (r.html ? r.antwoord : esc(r.antwoord)); r.html = true; }
+      return r;
+    }
+  }
   // snelopdracht: een vast woord voert een vaste handeling uit
   if (diepte < 3) {
     const sn = (S.snel || []).find(x => {
@@ -1121,6 +1135,72 @@ function begrijp(ruw, keuzes = {}, diepte = 0) {
   return { fout: 'Dat heb ik niet begrepen.', suggesties: suggesties(t) };
 }
 
+// ---------- commando's ----------
+// Elk commando: standaardwoorden, de vorm (voor het spiekbriefje) en hoe het naar een gewone zin vertaald wordt.
+const RING = /^(\d{3,7})\b\s*(.*)$/;
+const COMMANDOS = [
+  { key: 'binnen', naam: 'Aankomst klokken', woorden: ['binnen', 'klok'], vorm: 'ring tijd', vb: '1234 14 32', zin: r => { const m = r.match(RING); return m && `${m[1]} is binnen ${m[2]}`; } },
+  { key: 'tijd', naam: 'Hoe laat was hij binnen', woorden: ['tijd'], vorm: 'ring', vb: '1234', zin: r => { const m = r.match(RING); return m && `hoe laat was ${m[1]} binnen`; } },
+  { key: 'ei', naam: 'Ei(eren) gelegd', woorden: ['ei', 'eieren'], vorm: 'nestbak [aantal]', vb: '3 2', zin: r => { const m = r.match(/^(\d{1,2})\b\s*(\d)?/); return m && `nestbak ${m[1]} ${m[2] || 1} eieren`; } },
+  { key: 'uit', naam: 'Jongen uit', woorden: ['uit'], vorm: 'nestbak [aantal]', vb: '2', zin: r => { const m = r.match(/^(\d{1,2})\b\s*(\d)?/); return m && `nestbak ${m[1]} ${m[2] ? m[2] + ' ' : ''}jongen uit`; } },
+  { key: 'ring', naam: 'Jongen ringen', woorden: ['ring'], vorm: 'nestbak', vb: '2', zin: r => { const m = r.match(/^(\d{1,2})\b/); return m && `nestbak ${m[1]} geringd`; } },
+  { key: 'leeg', naam: 'Nestbak leegmaken', woorden: ['leeg'], vorm: 'nestbak', vb: '4', zin: r => { const m = r.match(/^(\d{1,2})\b/); return m && `nestbak ${m[1]} leeg`; } },
+  { key: 'kuur', naam: 'Kuur starten', woorden: ['kuur'], vorm: '[hok nr] middel [dagen]', vb: 'hok 2 tricho 5', zin: r => {
+      const hok = r.match(/hok\s*(\d+)/)?.[1]; const rest = r.replace(/hok\s*\d+/, '').trim();
+      const dagen = rest.match(/(\d+)\s*(?:dagen?)?\s*$/)?.[1]; const middel = rest.replace(/(\d+)\s*(?:dagen?)?\s*$/, '').trim();
+      return middel && `${hok ? 'hok ' + hok + ' ' : ''}kuur ${middel} ${dagen || 5} dagen`; } },
+  { key: 'naar', naam: 'Verplaatsen', woorden: ['naar', 'verplaats'], vorm: 'ring hok/kweek/jongen', vb: '1234 hok 2', zin: r => { const m = r.match(RING); return m && m[2] && `${m[1]} naar ${m[2]}`; } },
+  { key: 'eruit', naam: 'Op de lijst eruit', woorden: ['eruit'], vorm: 'ring [reden]', vb: '4417 te oud', zin: r => { const m = r.match(RING); return m && `${m[1]} moet eruit ${m[2]}`; } },
+  { key: 'weg', naam: 'Weg (verloren/dood)', woorden: ['weg', 'kwijt'], vorm: 'ring [reden]', vb: '1301 niet teruggekomen', zin: r => { const m = r.match(RING); return m && `${m[1]} is ${m[2] || 'weg'}`; } },
+  { key: 'tekoop', naam: 'Te koop zetten', woorden: ['te koop'], vorm: 'ring [prijs]', vb: '0533 350', zin: r => { const m = r.match(RING); return m && `${m[1]} te koop${m[2] ? ' ' + m[2].replace(/\D+$/, '') + ' euro' : ''}`; } },
+  { key: 'verkocht', naam: 'Verkocht', woorden: ['verkocht'], vorm: 'ring bedrag [aan wie]', vb: '0460 400 Jan', zin: r => { const m = r.match(/^(\d{3,7})\s+(\d+(?:[.,]\d+)?)\s*(?:euro)?\s*(?:aan\s+)?(.*)$/); return m && `${m[1]} verkocht voor ${m[2]} euro${m[3] ? ' aan ' + m[3] : ''}`; } },
+  { key: 'gekocht', naam: 'Gekocht', woorden: ['gekocht'], vorm: 'ring bedrag [van wie]', vb: '1238 300 markt', zin: r => { const m = r.match(/^(\d{3,7})\s+(\d+(?:[.,]\d+)?)\s*(?:euro)?\s*(?:van\s+)?(.*)$/); return m && `${m[1]} gekocht voor ${m[2]} euro${m[3] ? ' van ' + m[3] : ''}`; } },
+  { key: 'prijs', naam: 'Aankoop/verkoop opvragen', woorden: ['prijs'], vorm: 'ring', vb: '7781', zin: r => { const m = r.match(RING); return m && `hoe duur heb ik ${m[1]} gekocht of verkocht`; } },
+  { key: 'nieuw', naam: 'Nieuwe duif', woorden: ['nieuw', 'nieuwe duif'], vorm: '[jaar] ring [ouders vader moeder]', vb: '2025 1234567 ouders 4417 4552', zin: r => /^\d/.test(r) && `zet duif ${r.replace(/\bouders\s+(\d+)\s+(\d+)/, 'de ouders zijn $1 en $2')} erin` },
+  { key: 'ouders', naam: 'Afstamming', woorden: ['ouders', 'afstamming'], vorm: 'ring', vb: '1238', zin: r => { const m = r.match(RING); return m && `waar komt ${m[1]} uit`; } },
+  { key: 'groot', naam: 'Grootouders', woorden: ['groot'], vorm: 'ring [vaderskant/moederskant]', vb: '1238 vaderskant', zin: r => { const m = r.match(RING); return m && `wie zijn de grootouders ${m[2] ? 'van ' + m[2] + ' ' : ''}van ${m[1]}`; } },
+  { key: 'uitslag', naam: 'Prestaties', woorden: ['uitslag', 'prestatie'], vorm: 'ring', vb: '0457', zin: r => { const m = r.match(RING); return m && `wat heeft ${m[1]} gepresteerd`; } },
+  { key: 'waar', naam: 'Waar zit de duif', woorden: ['waar'], vorm: 'ring', vb: '1234', zin: r => { const m = r.match(/^(\d{3,7})$/); return m && `waar zit ${m[1]}`; } },
+  { key: 'voer', naam: 'Voer binnen', woorden: ['voer'], vorm: 'kilo [euro]', vb: '20 18', zin: r => { const m = r.match(/^(\d+(?:[.,]\d+)?)\s*(?:kilo)?\s*(?:(\d+(?:[.,]\d+)?)\s*(?:euro)?)?$/); return m && `${m[1]} kilo voer gekocht${m[2] ? ' ' + m[2] + ' euro' : ''}`; } },
+  { key: 'ringen', naam: 'Ringen binnen', woorden: ['ringen'], vorm: 'aantal', vb: '30', zin: r => { const m = r.match(/^(\d+)$/); return m && `${m[1]} ringen gekocht`; } },
+];
+const cmdWoorden = c => (S.commandos[c.key]?.length ? S.commandos[c.key] : c.woorden);
+// Herken "woord + gegevens"; alleen als de gegevens in de juiste vorm staan, anders gaat de zin naar de vrije herkenning.
+function commandoZin(t) {
+  const kandidaten = [];
+  for (const c of COMMANDOS) for (const w of cmdWoorden(c)) {
+    const z = normaliseer(w);
+    if (z && t.startsWith(z + ' ')) kandidaten.push({ c, w, z });
+  }
+  kandidaten.sort((a, b) => b.z.length - a.z.length); // langste woord eerst ("te koop" voor "te")
+  for (const { c, w, z } of kandidaten) {
+    const zin = c.zin(t.slice(z.length).trim());
+    if (zin) return { zin, woord: w, cmd: c };
+  }
+  return null;
+}
+
+function vCommandos() {
+  return ['Commando’s', `
+    <p style="color:var(--grijs);margin:0 4px 10px">Zeg het commandowoord, dan de gegevens in deze volgorde. Tik op ✎ om je eigen woord te kiezen. Gewone zinnen blijven ook werken.</p>
+    <div class="kaart" id="spiek"><table><tr><th>Zeg</th><th>Dan</th><th></th></tr>
+    ${COMMANDOS.map(c => `<tr><td><b>${cmdWoorden(c).map(esc).join(' / ')}</b> <span style="color:var(--grijs)">${esc(c.vorm)}</span><br><small style="color:var(--grijs)">bijv. “${esc(cmdWoorden(c)[0])} ${esc(c.vb)}”</small></td><td>${esc(c.naam)}</td>
+      <td><button class="icon-btn geen-print" style="background:var(--zand);color:var(--grijs)" aria-label="Woord wijzigen" onclick="commandoWijzigen('${c.key}')">✎</button></td></tr>`).join('')}
+    ${S.snel.map(x => `<tr><td><b>${esc(x.zeg)}</b></td><td>${esc(x.actie === 'zin' ? x.zin : ACTIES[x.actie])}</td><td></td></tr>`).join('')}
+    </table></div>
+    <div class="knoppen geen-print"><button class="knop" onclick="window.print()">🖨 Spiekbriefje afdrukken</button><a class="knop licht" href="#/woorden">Snelopdrachten & eigen woorden</a></div>
+    <p style="color:var(--grijs);margin:8px 4px" class="geen-print">[ ] = mag je weglaten. Ringnummers: de laatste cijfers zijn genoeg.</p>`];
+}
+function commandoWijzigen(key) {
+  const c = COMMANDOS.find(x => x.key === key);
+  formulier(c.naam, [
+    { naam: 'woorden', label: `Woord(en) voor “${c.naam}”, gescheiden door komma's. Leeg = standaard (${c.woorden.join(', ')})`, waarde: (S.commandos[key] || c.woorden).join(', ') },
+  ], f => {
+    const l = f.woorden.split(',').map(w => w.trim().toLowerCase()).filter(Boolean);
+    if (!l.length || l.join() === c.woorden.join()) delete S.commandos[key]; else S.commandos[key] = l;
+  });
+}
+
 // ---------- snelopdrachten ----------
 const ACTIES = {
   inkorven: 'Inkorven: alle vliegduiven in de vlucht van vandaag',
@@ -1255,7 +1335,7 @@ let rec = null;
 function stopLuister() { try { rec?.abort(); } catch { } rec = null; $('#mic').classList.remove('luistert'); }
 function spraak() {
   dialoog(`<h3>Wat wil je invoeren?</h3>
-    <p style="color:var(--grijs);margin-top:0;font-size:15px">Bijv. “zet duif 2025 1234567 erin, de ouders zijn 4417 en 4552” · “1234 is binnen, 14 uur 32” ·“nestbak 3, twee eieren” · “hok 2 kuur tricho gestart, vijf dagen” · “twintig kilo voer gekocht, achttien euro” · “4417 moet eruit” · “waar komt 1238 uit?” · “wat heeft 0457 gepresteerd?” · “wanneer moet ik voer bestellen?” · Snelopdrachten: ${S.snel.map(x => '“' + esc(x.zeg) + '”').join(' · ')} <a href="#/woorden" onclick="sluit()">Mijn woorden ›</a></p>
+    <p style="color:var(--grijs);margin-top:0;font-size:15px">Bijv. “zet duif 2025 1234567 erin, de ouders zijn 4417 en 4552” · “1234 is binnen, 14 uur 32” ·“nestbak 3, twee eieren” · “hok 2 kuur tricho gestart, vijf dagen” · “twintig kilo voer gekocht, achttien euro” · “4417 moet eruit” · “waar komt 1238 uit?” · “wat heeft 0457 gepresteerd?” · “wanneer moet ik voer bestellen?” · Snelopdrachten: ${S.snel.map(x => '“' + esc(x.zeg) + '”').join(' · ')}<br><b>Commando's:</b> ${COMMANDOS.slice(0, 6).map(c => '“' + esc(cmdWoorden(c)[0] + ' ' + c.vb) + '”').join(' · ')} <a href="#/commandos" onclick="sluit()">Alle commando's ›</a></p>
     <textarea id="zin" rows="2" placeholder="Spreek in of typ…"></textarea>
     <div class="knoppen"><button class="knop licht" id="opnieuw">🎤 Inspreken</button><button class="knop" id="verwerk">Verwerken</button></div>
     <div id="uitleg"></div>`);
@@ -1346,7 +1426,7 @@ function codeGescand(code) {
 $('#scan-btn').onclick = scan;
 
 // ---------- router ----------
-const ROUTES = { vandaag: vVandaag, duiven: vDuiven, duif: vDuif, vluchten: vVluchten, vlucht: vVlucht, ranglijst: vRanglijst, meer: vMeer, kweek: vKweek, nestbak: vNestbak, hok: vHok, gezondheid: vGezondheid, training: vTraining, voer: vVoer, afspraken: vAfspraken, kosten: vKosten, verkoop: vVerkoop, eruit: vEruit, instellingen: vInstellingen, woorden: vWoorden };
+const ROUTES = { vandaag: vVandaag, duiven: vDuiven, duif: vDuif, vluchten: vVluchten, vlucht: vVlucht, ranglijst: vRanglijst, meer: vMeer, kweek: vKweek, nestbak: vNestbak, hok: vHok, gezondheid: vGezondheid, training: vTraining, voer: vVoer, afspraken: vAfspraken, kosten: vKosten, verkoop: vVerkoop, eruit: vEruit, instellingen: vInstellingen, woorden: vWoorden, commandos: vCommandos };
 const TAB = { vandaag: 'vandaag', duiven: 'duiven', duif: 'duiven', vluchten: 'vluchten', vlucht: 'vluchten', ranglijst: 'vluchten' };
 function route() { const [naam, ...rest] = location.hash.slice(2).split('/'); return { naam: ROUTES[naam] ? naam : 'vandaag', arg: decodeURIComponent(rest.join('/')) }; }
 let vorigeRoute = '';
