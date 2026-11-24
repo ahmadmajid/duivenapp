@@ -1,4 +1,7 @@
 # DuivenApp
+n**Online (prototype):** https://ahmadmajid.github.io/duivenapp/
+
+Installeren: Android → Chrome → "App installeren". iPhone → Safari → Deel → "Zet op beginscherm".
 
 Alles-in-één app voor de duivensport thuis. Draait op telefoon, tablet en computer
 als installeerbare website (PWA), werkt offline en wordt online gelijkgezet.
