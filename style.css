@@ -133,7 +133,7 @@ video#cam { width: 100%; border-radius: 12px; background: #000; aspect-ratio: 1;
 #toast {
   position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(150px + var(--safe-b)); z-index: 9;
   background: var(--tekst); color: #fff; padding: 11px 16px; border-radius: 12px; max-width: 90vw;
-  display: flex; align-items: center; gap: 4px; white-space: nowrap;
+  display: flex; align-items: center; gap: 4px; width: max-content; max-width: 92vw;
 }
 #toast[hidden] { display: none; }
 .leeg { color: var(--grijs); text-align: center; padding: 18px; }

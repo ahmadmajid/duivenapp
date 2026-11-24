@@ -134,6 +134,20 @@ const bewaar = () => localStorage.setItem(KEY, JSON.stringify(S));
 S.ringen ??= { voorraad: 12, minimum: 10 };
 S.ringen.volgende ??= `NL-${new Date().getFullYear()}-`;
 S.ringen.laatste ??= [];
+S.woorden ??= [
+  { id: uid(), zeg: 'de kampioen', betekent: '4011234' },
+  { id: uid(), zeg: 'het oude hok', betekent: 'hok 2' },
+  { id: uid(), zeg: 'zwarte', betekent: 'donkerkras' },
+];
+S.snel ??= [
+  { id: uid(), zeg: 'inkorven', actie: 'inkorven', zin: '' },
+  { id: uid(), zeg: 'voeren', actie: 'voeren', zin: '' },
+  { id: uid(), zeg: 'water ververst', actie: 'water', zin: '' },
+  { id: uid(), zeg: 'hok schoon', actie: 'schoon', zin: '' },
+  { id: uid(), zeg: 'ochtendronde', actie: 'ronde', zin: '' },
+  { id: uid(), zeg: 'tricho kuur', actie: 'zin', zin: 'kuur tricho alle hokken 5 dagen' },
+];
+S.logboek ??= [];
 bewaar();
 
 // ---------- berekeningen ----------
@@ -210,7 +224,7 @@ function meldingen() {
   }
   // voer
   const vi = voerInfo();
-  if (vi.bestelBinnen <= 3) add(vi.bestelBinnen <= 0 ? 'rood' : 'oranje', '🌾', `Voer over ${Math.floor(vi.over)} dagen op – ${vi.bestelBinnen <= 0 ? 'nu bestellen' : 'bestel binnen ' + vi.bestelBinnen + ' dagen'}`, `${S.voer.voorraad} kg voorraad, ${S.voer.perDag} kg per dag, levertijd ${S.voer.levertijd} dagen.`, '#/voer');
+  if (vi.bestelBinnen <= 3) add(vi.bestelBinnen <= 0 ? 'rood' : 'oranje', '🌾', `Voer over ${Math.floor(vi.over)} dagen op – ${vi.bestelBinnen <= 0 ? 'nu bestellen' : 'bestel binnen ' + vi.bestelBinnen + (vi.bestelBinnen === 1 ? ' dag' : ' dagen')}`, `${S.voer.voorraad} kg voorraad, ${S.voer.perDag} kg per dag, levertijd ${S.voer.levertijd} dagen.`, '#/voer');
   // vaccinaties
   S.vaccinaties.forEach(x => {
     const n = dagenTot(volgendeVaccin(x));
@@ -324,6 +338,8 @@ function vVandaag() {
   return ['Vandaag', `
     <div style="margin:2px 4px 10px"><b style="font-size:20px;text-transform:capitalize">${datum}</b><br><small style="color:var(--grijs)">${weer}</small></div>
     ${m.length ? m.map(x => `<a class="kaart melding ${x.kl}" href="${x.href}" style="text-decoration:none;color:inherit"><div class="ico">${x.ico}</div><div><b>${esc(x.titel)}</b><small>${esc(x.sub)}</small></div></a>`).join('') : '<div class="kaart leeg">Niets dringends vandaag 👍</div>'}
+    <div class="sectie">Dagtaken</div>
+    <div class="kaart" style="display:flex;gap:8px;flex-wrap:wrap">${Object.entries(DAGTAKEN).map(([k, v]) => { const g = vandaagGedaan(k); return `<button class="knop ${g ? '' : 'licht'}" style="flex:1;min-width:30%;padding:10px 6px;font-size:15px" ${g ? 'disabled' : `onclick="wijzig(()=>doeTaak('${k}'),'${v.slice(3)} – afgevinkt')"`}>${v}<br><small style="font-weight:400">${g ? '✔ ' + g.tijd : 'nog doen'}</small></button>`; }).join('')}</div>
     ${top}
     <div class="sectie">Snel</div>
     <div class="grid2">
@@ -500,6 +516,7 @@ function vMeer() {
     ${t('#/verkoop', '🏷', 'Verkoop', `${S.duiven.filter(d => d.status === 'verkoop').length} te koop`)}
     ${t('#/eruit', '✂', 'Eruit', `${eruitVoorstellen().length} voorstellen`)}
     ${t('#/hok/Hok 1', '🏠', 'Hokken', 'Per hok bekijken')}
+    ${t('#/woorden', '🗣', 'Mijn woorden', `${S.snel.length} snelopdrachten`)}
     ${t('#/instellingen', '⚙', 'Instellingen', 'Locatie, meldingen')}
   </div>`];
 }
@@ -767,11 +784,17 @@ const SYNONIEMEN = [
   [/\b(manneke|mannetje|doffertje)\b/g, 'doffer'], [/\b(vrouwtje|popje|pop)\b/g, 'duivin'],
 ];
 let gesprekDuif = null; // de duif waar het gesprek als laatste over ging ("en zijn moeder?")
+const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 function normaliseer(ruw) {
   let t = getallen(ruw.replace(/(\d)\.(?=\d{3}\b)/g, '$1'));
   t = t.replace(/[,!;:](?!\d)/g, ' ').replace(/\s+/g, ' ').trim();
   t = t.replace(/\b\d(?: \d){2,}\b/g, m => m.replace(/ /g, ''));            // "1 2 3 4" -> "1234"
   t = t.replace(/\b(eh+m?|uh+m?|even|ff|effe|nou|zeg|hoor|eens|es|alsjeblieft|graag|dus|toch|oke|okay|ok)\b/g, ' ');
+  // eigen woorden van de gebruiker ("de kampioen" = 4011234)
+  for (const w of S.woorden || []) {
+    const z = getallen(w.zeg).replace(/[,!;:?]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (z) t = t.replace(new RegExp(`(^|\\s)${reEsc(z)}(?=\\s|$)`, 'g'), (m, a) => a + getallen(w.betekent));
+  }
   for (const [re, w] of SYNONIEMEN) t = t.replace(re, w);
   // duivennamen -> ringcijfers ("Kanon is binnen")
   [...S.duiven].filter(d => d.naam && d.naam.length >= 3).sort((a, b) => b.naam.length - a.naam.length)
@@ -780,9 +803,18 @@ function normaliseer(ruw) {
 }
 const KLEURWOORD = /\b(blauwgebandeerd|donkerkras|kras|blauw|rood|rode|schimmel|vaal|zwart|wit)\w*/;
 
-function begrijp(ruw, keuzes = {}) {
+function begrijp(ruw, keuzes = {}, diepte = 0) {
   let t = normaliseer(ruw);
   if (!t) return { fout: 'Ik heb niets gehoord.' };
+
+  // snelopdracht: een vast woord voert een vaste handeling uit
+  if (diepte < 3) {
+    const sn = (S.snel || []).find(x => {
+      const z = normaliseer(x.zeg);
+      return z && (t === z || (new RegExp(`(^|\\s)${reEsc(z)}(\\s|$)`).test(t) && t.split(' ').length <= z.split(' ').length + 2));
+    });
+    if (sn) return snelopdracht(sn, keuzes, diepte);
+  }
 
   // Geen ringnummer genoemd? Dan bedoel je de open duivenkaart, de duif van daarnet, of "die blauwe".
   if (!/\b\d{3,7}\b/.test(t) && !/^(hoeveel|aantal)/.test(t)) {
@@ -880,7 +912,7 @@ function begrijp(ruw, keuzes = {}) {
       if (/doffer/.test(t)) { l = l.filter(d => d.geslacht === 'D'); wat.push('doffers'); }
       else if (/duivin/.test(t)) { l = l.filter(d => d.geslacht === 'V'); wat.push('duivinnen'); }
       if (/jong/.test(t)) { l = l.filter(d => d.hok === 'Jongen' || d.ring.includes('-' + new Date().getFullYear() + '-')); wat.push('jongen'); }
-      const kw = t.match(KLEURWOORD); if (kw) { const stam = kw[1].replace(/^rode$/, 'rood'); l = l.filter(d => d.kleur.toLowerCase().includes(stam)); wat.unshift(stam + 'e'); }
+      const kw = t.match(KLEURWOORD); if (kw) { const stam = kw[1].replace(/^rode$/, 'rood'); l = l.filter(d => d.kleur.toLowerCase().includes(stam)); wat.unshift({ blauw: 'blauwe', rood: 'rode', wit: 'witte', zwart: 'zwarte', vaal: 'vale', kras: 'krasse' }[stam] || stam); if (wat.length === 1) wat.push('duiven'); }
       return { antwoord: `Je hebt <b>${l.length}</b> ${wat.join(' ') || 'duiven'}${st ? '' : ' (zonder verkochte en weggevallen)'}.` + (l.length && l.length <= 12 ? `<br><small>${l.map(d => ringHtml(d.ring)).join(' · ')}</small>` : ''), html: true };
     }
     // hoe laat binnen: "hoe laat was 1234 binnen?"
@@ -1089,6 +1121,102 @@ function begrijp(ruw, keuzes = {}) {
   return { fout: 'Dat heb ik niet begrepen.', suggesties: suggesties(t) };
 }
 
+// ---------- snelopdrachten ----------
+const ACTIES = {
+  inkorven: 'Inkorven: alle vliegduiven in de vlucht van vandaag',
+  voeren: 'Gevoerd: dagportie van de voorraad af',
+  water: 'Water ververst (afvinken)',
+  schoon: 'Hok schoongemaakt (afvinken)',
+  ronde: 'Ochtendronde: meldingen van vandaag voorlezen',
+  zin: 'Een of meer zinnen uitvoeren',
+};
+const DAGTAKEN = { voeren: '🌾 Gevoerd', water: '💧 Water ververst', schoon: '🧹 Hok schoon' };
+const tijdKort = () => new Date().toTimeString().slice(0, 5);
+const vandaagGedaan = taak => S.logboek.find(l => l.datum === VANDAAG() && l.taak === taak);
+function logTaak(taak, tekst) { S.logboek.push({ datum: VANDAAG(), tijd: tijdKort(), taak, tekst }); S.logboek = S.logboek.slice(-500); }
+function doeTaak(taak) {
+  if (taak === 'voeren') S.voer.voorraad = Math.max(0, +(S.voer.voorraad - S.voer.perDag).toFixed(1));
+  logTaak(taak, DAGTAKEN[taak]);
+}
+
+function snelopdracht(sn, keuzes, diepte) {
+  const kop = `<b>“${esc(sn.zeg)}”</b><br>`;
+  switch (sn.actie) {
+    case 'inkorven': {
+      const kuurHokken = S.kuren.filter(k => k.start <= VANDAAG() && plus(k.dagen + (k.wachttijd || 0), k.start) > VANDAAG()).map(k => k.hok);
+      const alle = S.duiven.filter(d => d.status === 'vlieg');
+      const geblokt = alle.filter(d => kuurHokken.includes(d.hok) || kuurHokken.includes('Alle hokken'));
+      const mee = alle.filter(d => !geblokt.includes(d));
+      let v = S.vluchten.find(x => x.datum === VANDAAG());
+      return {
+        wat: kop + `${mee.length} vliegduiven inkorven voor ${v ? esc(v.plaats) : 'de vlucht van vandaag (nieuw)'}.` + (geblokt.length ? `<br><small style="color:var(--rood)">Niet mee (kuur/wachttijd): ${geblokt.map(d => esc(d.ring.slice(-4))).join(', ')}</small>` : ''),
+        doe: () => {
+          if (!v) { v = { id: uid(), plaats: 'Vlucht van vandaag', afstand: 0, datum: VANDAAG(), lostijd: '', deelnemers: 0, uitslag: [] }; S.vluchten.push(v); }
+          mee.forEach(d => { if (!v.uitslag.some(u => u.duif === d.id)) v.uitslag.push({ duif: d.id, aankomst: null, plaats: null }); });
+          logTaak('inkorven', `Ingekorfd: ${mee.length} duiven`);
+        },
+      };
+    }
+    case 'voeren': case 'water': case 'schoon': {
+      const al = vandaagGedaan(sn.actie);
+      if (al) return { antwoord: `${DAGTAKEN[sn.actie]} staat vandaag al afgevinkt (${al.tijd}).` };
+      return { wat: kop + DAGTAKEN[sn.actie] + ` om ${tijdKort()}` + (sn.actie === 'voeren' ? `<br><small>${S.voer.perDag} kg van de voorraad af → nog ${Math.max(0, +(S.voer.voorraad - S.voer.perDag).toFixed(1))} kg</small>` : ''), doe: () => doeTaak(sn.actie) };
+    }
+    case 'ronde': {
+      const m = meldingen();
+      const tekst = m.length ? `Goedemorgen. Er zijn ${m.length} punten. ` + m.map(x => x.titel.replace('−', 'min ')).join('. ') + '.' : 'Goedemorgen. Er is niets dringends vandaag.';
+      return { antwoord: kop + (m.length ? m.map(x => `${x.ico} ${esc(x.titel)}`).join('<br>') : 'Niets dringends vandaag 👍'), html: true, spreek: tekst };
+    }
+    case 'zin': {
+      const delen = (sn.zin || '').split(';').map(x => x.trim()).filter(Boolean);
+      if (!delen.length) return { fout: `Snelopdracht “${sn.zeg}” heeft nog geen zin om uit te voeren.` };
+      const res = delen.map(z => begrijp(z, keuzes, diepte + 1));
+      const fout = res.find(r => r.fout); if (fout) return { fout: `Snelopdracht “${sn.zeg}”: ${fout.fout}` };
+      const kies = res.find(r => r.kies); if (kies) return kies;
+      if (res.length === 1 && res[0].antwoord) return { ...res[0], antwoord: kop + res[0].antwoord, html: true };
+      if (res.every(r => r.doe)) return { wat: kop + res.map(r => r.wat).join('<br>'), doe: () => res.forEach(r => r.doe()) };
+      return { antwoord: kop + res.map(r => r.antwoord || r.wat).join('<br>'), html: true };
+    }
+  }
+  return { fout: 'Onbekende snelopdracht.' };
+}
+
+function vWoorden() {
+  return ['Mijn woorden', `
+    <p style="color:var(--grijs);margin:0 4px 10px">Leer de app je eigen woorden. Alles werkt zonder internet en zonder AI.</p>
+    <div class="sectie">Snelopdrachten – één woord, vaste handeling</div>
+    <div class="kaart">${S.snel.map(x => `
+      <div class="rij"><div class="groot"><b>“${esc(x.zeg)}”</b><small>${esc(x.actie === 'zin' ? '→ ' + x.zin : ACTIES[x.actie])}</small></div>
+      <button class="icon-btn" style="background:var(--zand);color:var(--grijs)" aria-label="Wijzigen" onclick="snelBewerken('${x.id}')">✎</button>
+      <button class="icon-btn" style="background:var(--zand);color:var(--grijs)" aria-label="Verwijderen" onclick="wijzig(()=>S.snel=S.snel.filter(y=>y.id!=='${x.id}'),'Snelopdracht verwijderd')">✕</button></div>`).join('') || '<div class="leeg">Nog geen snelopdrachten</div>'}
+      <button class="knop licht vol" onclick="snelBewerken()">＋ Snelopdracht</button></div>
+    <div class="sectie">Eigen woorden – “als ik dit zeg, bedoel ik dat”</div>
+    <div class="kaart">${S.woorden.map(x => `
+      <div class="rij"><div class="groot"><b>“${esc(x.zeg)}”</b><small>= ${esc(x.betekent)}</small></div>
+      <button class="icon-btn" style="background:var(--zand);color:var(--grijs)" aria-label="Verwijderen" onclick="wijzig(()=>S.woorden=S.woorden.filter(y=>y.id!=='${x.id}'),'Woord verwijderd')">✕</button></div>`).join('') || '<div class="leeg">Nog geen eigen woorden</div>'}
+      <button class="knop licht vol" onclick="woordToevoegen()">＋ Eigen woord</button></div>
+    <p style="color:var(--grijs);margin:4px">Tip: snapt de app een zin niet? Tik dan op “Leer deze zin”. Een snelopdracht kan ook meerdere zinnen doen, gescheiden door ; (puntkomma).</p>
+    ${S.logboek.length ? `<div class="sectie">Logboek</div><div class="kaart">${S.logboek.slice(-10).reverse().map(l => `<div class="rij"><div class="groot">${esc(l.tekst)}</div><small>${fmtD(l.datum)} ${l.tijd}</small></div>`).join('')}</div>` : ''}`];
+}
+function woordToevoegen(zeg = '') {
+  formulier('Eigen woord', [
+    { naam: 'zeg', label: 'Als ik zeg…', waarde: zeg },
+    { naam: 'betekent', label: '…bedoel ik (bijv. ringcijfers 4011234, “hok 2”, “donkerkras”)', waarde: '' },
+  ], f => { if (f.zeg.trim() && f.betekent.trim()) S.woorden.push({ id: uid(), zeg: f.zeg.trim().toLowerCase(), betekent: f.betekent.trim() }); });
+}
+function snelBewerken(id, zeg = '') {
+  const x = S.snel.find(y => y.id === id) || { zeg, actie: 'zin', zin: '' };
+  formulier(id ? 'Snelopdracht wijzigen' : 'Nieuwe snelopdracht', [
+    { naam: 'zeg', label: 'Als ik zeg…', waarde: x.zeg },
+    { naam: 'actie', label: '…dan doet de app', waarde: x.actie, opties: Object.entries(ACTIES) },
+    { naam: 'zin', label: 'Zin(nen) die hij uitvoert (alleen bij “zinnen uitvoeren”; meerdere met ;)', waarde: x.zin },
+  ], f => {
+    const nieuw = { zeg: f.zeg.trim().toLowerCase(), actie: f.actie, zin: f.zin.trim() };
+    if (!nieuw.zeg) return;
+    if (id) Object.assign(S.snel.find(y => y.id === id), nieuw); else S.snel.push({ id: uid(), ...nieuw });
+  });
+}
+
 // Bij onbegrepen zinnen: de voorbeelden die er het meest op lijken
 const VOORBEELDEN = [
   ['1234 is binnen 14 uur 32', 'binnen thuis klok aankomst tijd uur'],
@@ -1127,7 +1255,7 @@ let rec = null;
 function stopLuister() { try { rec?.abort(); } catch { } rec = null; $('#mic').classList.remove('luistert'); }
 function spraak() {
   dialoog(`<h3>Wat wil je invoeren?</h3>
-    <p style="color:var(--grijs);margin-top:0;font-size:15px">Bijv. “zet duif 2025 1234567 erin, de ouders zijn 4417 en 4552” · “1234 is binnen, 14 uur 32” ·“nestbak 3, twee eieren” · “hok 2 kuur tricho gestart, vijf dagen” · “twintig kilo voer gekocht, achttien euro” · “4417 moet eruit” · “waar komt 1238 uit?” · “wat heeft 0457 gepresteerd?” · “wanneer moet ik voer bestellen?”</p>
+    <p style="color:var(--grijs);margin-top:0;font-size:15px">Bijv. “zet duif 2025 1234567 erin, de ouders zijn 4417 en 4552” · “1234 is binnen, 14 uur 32” ·“nestbak 3, twee eieren” · “hok 2 kuur tricho gestart, vijf dagen” · “twintig kilo voer gekocht, achttien euro” · “4417 moet eruit” · “waar komt 1238 uit?” · “wat heeft 0457 gepresteerd?” · “wanneer moet ik voer bestellen?” · Snelopdrachten: ${S.snel.map(x => '“' + esc(x.zeg) + '”').join(' · ')} <a href="#/woorden" onclick="sluit()">Mijn woorden ›</a></p>
     <textarea id="zin" rows="2" placeholder="Spreek in of typ…"></textarea>
     <div class="knoppen"><button class="knop licht" id="opnieuw">🎤 Inspreken</button><button class="knop" id="verwerk">Verwerken</button></div>
     <div id="uitleg"></div>`);
@@ -1157,11 +1285,18 @@ function verwerk(tekst, keuzes = {}) {
   if (r.fout) {
     const sg = r.suggesties || [];
     u.innerHTML = `<div class="kaart melding rood" style="margin-top:10px"><div>${esc(r.fout)}${sg.length ? '<br><small>Bedoelde je misschien:</small>' : '<br><small>Tik op “Inspreken” en probeer het anders te zeggen.</small>'}</div></div>` +
-      sg.map((z, i) => `<button class="knop licht vol" style="margin-bottom:6px;text-align:left" data-sg="${i}">“${esc(z)}”</button>`).join('');
+      sg.map((z, i) => `<button class="knop licht vol" style="margin-bottom:6px;text-align:left" data-sg="${i}">“${esc(z)}”</button>`).join('') +
+      `<div class="knoppen"><button class="knop licht" id="leer">🧠 Leer deze zin</button><button class="knop licht" id="leerwoord">＋ Eigen woord</button></div>`;
     u.querySelectorAll('[data-sg]').forEach(b => b.onclick = () => { const z = sg[+b.dataset.sg]; $('#zin').value = z; verwerk(z, keuzes); });
+    $('#leer').onclick = () => snelBewerken(null, tekst.trim().toLowerCase().replace(/[?.!]+$/, ''));
+    $('#leerwoord').onclick = () => woordToevoegen();
     return;
   }
-  if (r.antwoord) { u.innerHTML = `<div class="kaart melding blauw" style="margin-top:10px"><div>${r.html ? r.antwoord : esc(r.antwoord)}</div></div>`; return; }
+  if (r.antwoord) {
+    u.innerHTML = `<div class="kaart melding blauw" style="margin-top:10px"><div>${r.html ? r.antwoord : esc(r.antwoord)}</div></div>`;
+    if (r.spreek && 'speechSynthesis' in window) { const s = new SpeechSynthesisUtterance(r.spreek); s.lang = 'nl-NL'; speechSynthesis.cancel(); speechSynthesis.speak(s); }
+    return;
+  }
   if (r.kies) {
     u.innerHTML = `<p><b>${esc(r.vraag || 'Welke duif bedoel je?')}</b></p>` + r.kies.map(d => `<button class="knop licht vol" style="margin-bottom:6px" data-id="${d.id}">${ringHtml(d.ring)} ${esc(d.naam)} <small>${d.geslacht === 'D' ? '♂' : '♀'} ${STATUS[d.status][0]}</small></button>`).join('');
     u.querySelectorAll('[data-id]').forEach(b => b.onclick = () => verwerk(tekst, { ...keuzes, [r.sleutel]: b.dataset.id }));
@@ -1211,7 +1346,7 @@ function codeGescand(code) {
 $('#scan-btn').onclick = scan;
 
 // ---------- router ----------
-const ROUTES = { vandaag: vVandaag, duiven: vDuiven, duif: vDuif, vluchten: vVluchten, vlucht: vVlucht, ranglijst: vRanglijst, meer: vMeer, kweek: vKweek, nestbak: vNestbak, hok: vHok, gezondheid: vGezondheid, training: vTraining, voer: vVoer, afspraken: vAfspraken, kosten: vKosten, verkoop: vVerkoop, eruit: vEruit, instellingen: vInstellingen };
+const ROUTES = { vandaag: vVandaag, duiven: vDuiven, duif: vDuif, vluchten: vVluchten, vlucht: vVlucht, ranglijst: vRanglijst, meer: vMeer, kweek: vKweek, nestbak: vNestbak, hok: vHok, gezondheid: vGezondheid, training: vTraining, voer: vVoer, afspraken: vAfspraken, kosten: vKosten, verkoop: vVerkoop, eruit: vEruit, instellingen: vInstellingen, woorden: vWoorden };
 const TAB = { vandaag: 'vandaag', duiven: 'duiven', duif: 'duiven', vluchten: 'vluchten', vlucht: 'vluchten', ranglijst: 'vluchten' };
 function route() { const [naam, ...rest] = location.hash.slice(2).split('/'); return { naam: ROUTES[naam] ? naam : 'vandaag', arg: decodeURIComponent(rest.join('/')) }; }
 let vorigeRoute = '';
